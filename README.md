@@ -1,4 +1,4 @@
-![logo](https://http://cdn.phynixmc.com/images/phynix.png)  
+![logo](http://cdn.phynixmc.com/images/phynix.png)  
 A fork of UltimateChat (link to original) that is specifically for Sponge. This adds some additional features, as well as some quality of life improvements.
 
 ## Available versions:
