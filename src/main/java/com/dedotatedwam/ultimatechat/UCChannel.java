@@ -1,12 +1,12 @@
-package br.net.fabiozumbi12.UltimateChat;
-
-import java.util.ArrayList;
-import java.util.List;
+package com.dedotatedwam.ultimatechat;
 
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.channel.MutableMessageChannel;
 import org.spongepowered.api.world.World;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class UCChannel {
 

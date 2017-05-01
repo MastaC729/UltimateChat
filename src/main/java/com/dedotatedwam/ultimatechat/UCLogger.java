@@ -1,10 +1,12 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
+import com.dedotatedwam.ultimatechat.config.UCConfig;
 import org.spongepowered.api.Server;
 import org.spongepowered.api.command.source.ConsoleSource;
 
 public class UCLogger{
-	
+
+	//TODO Convert this entire class to proper Logger format
 	private ConsoleSource console;
 	
 	UCLogger(Server serv){
@@ -36,7 +38,7 @@ public class UCLogger{
     }
     
     public void debug(String s) {
-        if (UChat.get().getConfig() != null && UChat.get().getConfig().getBool("debug-messages")) {
+        if (UCConfig.getInstance() != null && UCConfig.getInstance().getBool("debug-messages")) {
         	console.sendMessage(UCUtil.toText("UltimateChat: [&b"+s+"&r]"));
         }  
     }

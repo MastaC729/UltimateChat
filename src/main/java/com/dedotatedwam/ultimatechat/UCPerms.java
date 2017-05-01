@@ -1,8 +1,6 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.dedotatedwam.ultimatechat.config.UCConfig;
 import org.spongepowered.api.Game;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.source.ConsoleSource;
@@ -10,6 +8,9 @@ import org.spongepowered.api.entity.living.player.User;
 import org.spongepowered.api.service.permission.PermissionService;
 import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.service.permission.SubjectCollection;
+
+import java.util.ArrayList;
+import java.util.List;
 
 class UCPerms {
 	private PermissionService permissionService;
@@ -23,12 +24,12 @@ class UCPerms {
 	}
 	
 	boolean channelPerm(CommandSource p, UCChannel ch){
-		UCChannel defCh = UChat.get().getConfig().getDefChannel();
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
 		return defCh.equals(ch) || hasPerm(p, "channel."+ch.getName().toLowerCase());
 	}
 	
 	boolean channelPerm(CommandSource p, String ch){
-		UCChannel defCh = UChat.get().getConfig().getDefChannel();
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
 		return defCh.getName().equals(ch) || defCh.getAlias().equals(ch) || hasPerm(p, "channel."+ch.toLowerCase());
 	}
 	

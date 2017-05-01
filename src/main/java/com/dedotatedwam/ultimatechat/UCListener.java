@@ -1,9 +1,7 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
+import com.dedotatedwam.ultimatechat.config.UCConfig;
+import com.dedotatedwam.ultimatechat.config.UCLang;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.entity.living.player.Player;
@@ -15,7 +13,10 @@ import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.channel.MutableMessageChannel;
 import org.spongepowered.api.text.serializer.TextSerializers;
 
-import br.net.fabiozumbi12.UltimateChat.config.UCLang;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 
 public class UCListener {
 	
@@ -26,24 +27,24 @@ public class UCListener {
 			return;
 		}		
 		Player tellreceiver = tellreceiver2.get();
-		UChat.respondTell.put(tellreceiver.getName(),p.getName());
+		UltimateChat.respondTell.put(tellreceiver.getName(),p.getName());
 		UCMessages.sendFancyMessage(new String[0], msg, null, p, tellreceiver);			
 	}
 	
 	@Listener
 	public void onChat(MessageChannelEvent.Chat e, @First Player p){
-		if (UChat.tellPlayers.containsKey(p.getName())){
-			Optional<Player> tellreceiver = Sponge.getServer().getPlayer(UChat.tellPlayers.get(p.getName()));
+		if (UltimateChat.tellPlayers.containsKey(p.getName())){
+			Optional<Player> tellreceiver = Sponge.getServer().getPlayer(UltimateChat.tellPlayers.get(p.getName()));
 			sendTell(p, tellreceiver, e.getRawMessage().toPlain());
 			e.setMessageCancelled(true);
 		} else {
-			UCChannel ch = UChat.get().getConfig().getChannel(UChat.pChannels.get(p.getName()));
-			if (UChat.tempChannels.containsKey(p.getName()) && !UChat.tempChannels.get(p.getName()).equals(ch.getAlias())){
-				ch = UChat.get().getConfig().getChannel(UChat.tempChannels.get(p.getName()));
-				UChat.tempChannels.remove(p.getName());
+			UCChannel ch = UCConfig.getInstance().getChannel(UltimateChat.pChannels.get(p.getName()));
+			if (UltimateChat.tempChannels.containsKey(p.getName()) && !UltimateChat.tempChannels.get(p.getName()).equals(ch.getAlias())){
+				ch = UCConfig.getInstance().getChannel(UltimateChat.tempChannels.get(p.getName()));
+				UltimateChat.tempChannels.remove(p.getName());
 			}
 			
-			if (UChat.mutes.contains(p.getName()) || ch.isMuted(p.getName())){
+			if (UltimateChat.mutes.contains(p.getName()) || ch.isMuted(p.getName())){
 				UCLang.sendMessage(p, "channel.muted");
 				e.setMessageCancelled(true);
 				return;
@@ -82,35 +83,35 @@ public class UCListener {
 	@Listener
 	public void onJoin(ClientConnectionEvent.Join e){
 		Player p = e.getTargetEntity();		
-		UChat.pChannels.put(p.getName(), UChat.get().getConfig().getDefChannel().getAlias());
+		UltimateChat.pChannels.put(p.getName(), UCConfig.getInstance().getDefChannel().getAlias());
 	}
 		
 	@Listener
 	public void onQuit(ClientConnectionEvent.Disconnect e){
 		Player p = e.getTargetEntity();	
 		List<String> toRemove = new ArrayList<String>();
-		for (String play:UChat.tellPlayers.keySet()){
-			if (play.equals(p.getName()) || UChat.tellPlayers.get(play).equals(p.getName())){
+		for (String play:UltimateChat.tellPlayers.keySet()){
+			if (play.equals(p.getName()) || UltimateChat.tellPlayers.get(play).equals(p.getName())){
 				toRemove.add(play);				
 			}
 		}	
 		for (String remove:toRemove){
-			UChat.tellPlayers.remove(remove);
+			UltimateChat.tellPlayers.remove(remove);
 		}
 		List<String> toRemove2 = new ArrayList<String>();
-		for (String play:UChat.respondTell.keySet()){
-			if (play.equals(p.getName()) || UChat.respondTell.get(play).equals(p.getName())){
+		for (String play:UltimateChat.respondTell.keySet()){
+			if (play.equals(p.getName()) || UltimateChat.respondTell.get(play).equals(p.getName())){
 				toRemove2.add(play);				
 			}
 		}	
 		for (String remove:toRemove2){
-			UChat.respondTell.remove(remove);
+			UltimateChat.respondTell.remove(remove);
 		}
-		if (UChat.pChannels.containsKey(p.getName())){
-			UChat.pChannels.remove(p.getName());
+		if (UltimateChat.pChannels.containsKey(p.getName())){
+			UltimateChat.pChannels.remove(p.getName());
 		}
-		if (UChat.tempChannels.containsKey(p.getName())){
-			UChat.tempChannels.remove(p.getName());
+		if (UltimateChat.tempChannels.containsKey(p.getName())){
+			UltimateChat.tempChannels.remove(p.getName());
 		}
 	}
 			

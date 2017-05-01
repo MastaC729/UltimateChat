@@ -1,14 +1,10 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-
+import com.dedotatedwam.ultimatechat.API.SendChannelMessageEvent;
+import com.dedotatedwam.ultimatechat.config.UCConfig;
+import com.dedotatedwam.ultimatechat.config.UCLang;
 import nl.riebie.mcclans.api.ClanPlayer;
 import nl.riebie.mcclans.api.ClanService;
-
 import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
@@ -29,8 +25,12 @@ import org.spongepowered.api.text.channel.MutableMessageChannel;
 import org.spongepowered.api.text.chat.ChatTypes;
 import org.spongepowered.api.text.serializer.TextSerializers;
 
-import br.net.fabiozumbi12.UltimateChat.API.SendChannelMessageEvent;
-import br.net.fabiozumbi12.UltimateChat.config.UCLang;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
 
 class UCMessages {
 
@@ -51,7 +51,7 @@ class UCMessages {
 	protected static Object[] sendFancyMessage(String[] format, String msg, UCChannel channel, CommandSource sender, Player tellReceiver){
 		//Execute listener:
 		HashMap<String,String> tags = new HashMap<String,String>();
-		for (String str:UChat.get().getConfig().getStringList("general","custom-tags")){
+		for (String str:UCConfig.getInstance().getStringList("general","custom-tags")){
 			tags.put(str, str);
 		}
 		SendChannelMessageEvent event = new SendChannelMessageEvent(tags, format, sender, channel, msg, true);
@@ -84,18 +84,18 @@ class UCMessages {
 				return null;
 			}
 			
-			if (!UChat.get().getPerms().channelPerm(sender, ch)){
+			if (!UltimateChat.getPerms().channelPerm(sender, ch)){
 				UCLang.sendMessage(sender, UCLang.get("channel.nopermission").replace("{channel}", ch.getName()));
 				return null;
 			}
 			
-			if (!UChat.get().getPerms().hasPerm(sender, "bypass.cost") && UChat.get().getEco() != null && sender instanceof Player && ch.getCost() > 0){
-				UniqueAccount acc = UChat.get().getEco().getOrCreateAccount(((Player)sender).getUniqueId()).get();
-				if (acc.getBalance(UChat.get().getEco().getDefaultCurrency()).doubleValue() < ch.getCost()){
+			if (!UltimateChat.getPerms().hasPerm(sender, "bypass.cost") && UltimateChat.getEco() != null && sender instanceof Player && ch.getCost() > 0){
+				UniqueAccount acc = UltimateChat.getEco().getOrCreateAccount(((Player)sender).getUniqueId()).get();
+				if (acc.getBalance(UltimateChat.getEco().getDefaultCurrency()).doubleValue() < ch.getCost()){
 					sender.sendMessage(UCUtil.toText(UCLang.get("channel.cost").replace("{value}", ""+ch.getCost())));
 					return null;
 				} else {
-					acc.withdraw(UChat.get().getEco().getDefaultCurrency(), BigDecimal.valueOf(ch.getCost()), Cause.of(NamedCause.owner(UChat.plugin)));
+					acc.withdraw(UltimateChat.getEco().getDefaultCurrency(), BigDecimal.valueOf(ch.getCost()), Cause.of(NamedCause.owner(UltimateChat.plugin)));
 				}
 			}
 				
@@ -105,7 +105,7 @@ class UCMessages {
 			
 			if (ch.getDistance() > 0 && sender instanceof Player){			
 				for (Entity ent:((Player)sender).getNearbyEntities(ch.getDistance())){
-					if (ent instanceof Player && UChat.get().getPerms().channelPerm((Player)ent, ch)){	
+					if (ent instanceof Player && UltimateChat.getPerms().channelPerm((Player)ent, ch)){
 						Player p = (Player) ent;				
 						if (((Player)sender).equals(p)){
 							continue;
@@ -119,7 +119,7 @@ class UCMessages {
 						if (!((Player)sender).canSee(p)){
 							vanish++;
 						}
-						if ((ch.neeFocus() && UChat.pChannels.get(((Player)ent).getName()).equals(ch.getAlias())) || !ch.neeFocus()){					
+						if ((ch.neeFocus() && UltimateChat.pChannels.get(((Player)ent).getName()).equals(ch.getAlias())) || !ch.neeFocus()){
 							toConsole = sendMessage(sender,(Player)ent, evmsg, ch, false);
 							receivers.add((Player)ent);
 							msgCh.transformMessage(sender, (Player)ent, buildMessage(toConsole), ChatTypes.SYSTEM);
@@ -129,7 +129,7 @@ class UCMessages {
 				toConsole = sendMessage(sender, sender, evmsg, ch, false);
 			} else {
 				for (Player receiver:Sponge.getServer().getOnlinePlayers()){	
-					if (receiver.equals(sender) || !UChat.get().getPerms().channelPerm(receiver, ch) || (!ch.crossWorlds() && (sender instanceof Player && !receiver.getWorld().equals(((Player)sender).getWorld())))){				
+					if (receiver.equals(sender) || !UltimateChat.getPerms().channelPerm(receiver, ch) || (!ch.crossWorlds() && (sender instanceof Player && !receiver.getWorld().equals(((Player)sender).getWorld())))){
 						continue;
 					}
 					if (!ch.availableWorlds().isEmpty() && !ch.availableInWorld(receiver.getWorld())){
@@ -143,7 +143,7 @@ class UCMessages {
 					} else {
 						noWorldReceived++;
 					}					
-					if ((ch.neeFocus() && UChat.pChannels.get(receiver.getName()).equals(ch.getAlias())) || !ch.neeFocus()){
+					if ((ch.neeFocus() && UltimateChat.pChannels.get(receiver.getName()).equals(ch.getAlias())) || !ch.neeFocus()){
 						toConsole = sendMessage(sender, receiver, evmsg, ch, false);
 						receivers.add(receiver);
 						msgCh.transformMessage(sender, receiver, buildMessage(toConsole), ChatTypes.SYSTEM);
@@ -154,8 +154,8 @@ class UCMessages {
 									
 			//chat spy
 			for (Player receiver:Sponge.getServer().getOnlinePlayers()){			
-				if (!receiver.equals(sender) && !receivers.contains(receiver) && !receivers.contains(sender) && UChat.isSpy.contains(receiver.getName())){	
-					String spyformat = UChat.get().getConfig().getString("general","spy-format");
+				if (!receiver.equals(sender) && !receivers.contains(receiver) && !receivers.contains(sender) && UltimateChat.isSpy.contains(receiver.getName())){
+					String spyformat = UCConfig.getInstance().getString("general","spy-format");
 					spyformat = spyformat.replace("{output}", UCUtil.stripColor(buildMessage(sendMessage(sender, receiver, evmsg, ch, true)).toPlain()));					
 					receiver.sendMessage(UCUtil.toText(spyformat));
 				}
@@ -185,8 +185,8 @@ class UCMessages {
 			
 			//send spy			
 			for (Player receiver:Sponge.getServer().getOnlinePlayers()){			
-				if (!receiver.equals(tellReceiver) && !receiver.equals(sender) && UChat.isSpy.contains(receiver.getName())){
-					String spyformat = UChat.get().getConfig().getString("general","spy-format");
+				if (!receiver.equals(tellReceiver) && !receiver.equals(sender) && UltimateChat.isSpy.contains(receiver.getName())){
+					String spyformat = UCConfig.getInstance().getString("general","spy-format");
 					if (isIgnoringPlayers(tellReceiver.getName(), sender.getName())){
 						spyformat = UCLang.get("chat.ignored")+spyformat;
 					}
@@ -215,13 +215,13 @@ class UCMessages {
 	}
 	private static String composeColor(CommandSource sender, String evmsg){
 		if (sender instanceof Player){			
-			if (!UChat.get().getPerms().hasPerm((Player)sender, "chat.color")){
+			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color")){
 				evmsg = evmsg.replaceAll("(?i)&([a-f0-9r])", "");
 			}
-			if (!UChat.get().getPerms().hasPerm((Player)sender, "chat.color.formats")){
+			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color.formats")){
 				evmsg = evmsg.replaceAll("(?i)&([l-o])", "");
 			}
-			if (!UChat.get().getPerms().hasPerm((Player)sender, "chat.color.magic")){
+			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color.magic")){
 				evmsg = evmsg.replaceAll("(?i)&([k])", "");
 			}
 		}	
@@ -230,28 +230,28 @@ class UCMessages {
 	
 	static boolean isIgnoringPlayers(String p, String victim){
 		List<String> list = new ArrayList<String>();
-		if (UChat.ignoringPlayer.containsKey(p)){
-			list.addAll(UChat.ignoringPlayer.get(p));			
+		if (UltimateChat.ignoringPlayer.containsKey(p)){
+			list.addAll(UltimateChat.ignoringPlayer.get(p));
 		}
 		return list.contains(victim);
 	}
 	
 	static void ignorePlayer(String p, String victim){
 		List<String> list = new ArrayList<String>();
-		if (UChat.ignoringPlayer.containsKey(p)){
-			list.addAll(UChat.ignoringPlayer.get(p));
+		if (UltimateChat.ignoringPlayer.containsKey(p)){
+			list.addAll(UltimateChat.ignoringPlayer.get(p));
 		}
 		list.add(victim);
-		UChat.ignoringPlayer.put(p, list);
+		UltimateChat.ignoringPlayer.put(p, list);
 	}
 	
 	static void unIgnorePlayer(String p, String victim){
 		List<String> list = new ArrayList<String>();
-		if (UChat.ignoringPlayer.containsKey(p)){
-			list.addAll(UChat.ignoringPlayer.get(p));
+		if (UltimateChat.ignoringPlayer.containsKey(p)){
+			list.addAll(UltimateChat.ignoringPlayer.get(p));
 		}
 		list.remove(victim);
-		UChat.ignoringPlayer.put(p, list);
+		UltimateChat.ignoringPlayer.put(p, list);
 	}
 	
 	private static Builder[] sendMessage(CommandSource sender, CommandSource receiver, String msg, UCChannel ch, boolean isSpy){
@@ -260,7 +260,7 @@ class UCMessages {
 		Builder message = Text.builder();
 				
 		if (!ch.getName().equals("tell")){
-			String[] defaultBuilder = UChat.get().getConfig().getDefBuilder();
+			String[] defaultBuilder = UCConfig.getInstance().getDefBuilder();
 			if (ch.useOwnBuilder()){
 				defaultBuilder = ch.getBuilder();
 			}
@@ -271,17 +271,17 @@ class UCMessages {
 				
 				Builder msgBuilder = Text.builder();
 				
-				if (UChat.get().getConfig().getString("tags",tag,"format") == null){
+				if (UCConfig.getInstance().getString("tags",tag,"format") == null){
 					tagBuilder.append(Text.of(tag));
 					continue;
 				}
 				
-				String perm = UChat.get().getConfig().getString("tags",tag,"permission");
-				String format = lastColor+UChat.get().getConfig().getString("tags",tag,"format");
-				String execute = UChat.get().getConfig().getString("tags",tag,"click-cmd");
-				List<String> messages = UChat.get().getConfig().getStringList("tags",tag,"hover-messages");
-				List<String> showWorlds = UChat.get().getConfig().getStringList("tags",tag,"show-in-worlds");
-				List<String> hideWorlds = UChat.get().getConfig().getStringList("tags",tag,"hide-in-worlds");
+				String perm = UCConfig.getInstance().getString("tags",tag,"permission");
+				String format = lastColor + UCConfig.getInstance().getString("tags",tag,"format");
+				String execute = UCConfig.getInstance().getString("tags",tag,"click-cmd");
+				List<String> messages = UCConfig.getInstance().getStringList("tags",tag,"hover-messages");
+				List<String> showWorlds = UCConfig.getInstance().getStringList("tags",tag,"show-in-worlds");
+				List<String> hideWorlds = UCConfig.getInstance().getStringList("tags",tag,"hide-in-worlds");
 				
 				//check perm
 				if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)){
@@ -319,8 +319,8 @@ class UCMessages {
 					lastColor = getLastColor(format);
 					
 					//msg = mention(sender, receiver, msg);									
-					if (UChat.get().getConfig().getString("mention","hover-message").length() > 0 && StringUtils.containsIgnoreCase(msg, receiver.getName())){
-						tooltip = formatTags("", UChat.get().getConfig().getString("mention","hover-message"), sender, receiver, msg, ch);						
+					if (UCConfig.getInstance().getString("mention","hover-message").length() > 0 && StringUtils.containsIgnoreCase(msg, receiver.getName())){
+						tooltip = formatTags("", UCConfig.getInstance().getString("mention","hover-message"), sender, receiver, msg, ch);
 						msgBuilder.append(UCUtil.toText(format))
 				   		   .onHover(TextActions.showText(UCUtil.toText(tooltip)));
 					} else if (tooltip.length() > 0){				
@@ -352,9 +352,9 @@ class UCMessages {
 			}
 		} else {
 			//if tell
-			String prefix = UChat.get().getConfig().getString("tell","prefix");
-			String format = UChat.get().getConfig().getString("tell","format");
-			List<String> messages = UChat.get().getConfig().getStringList("tell","hover-messages");
+			String prefix = UCConfig.getInstance().getString("tell","prefix");
+			String format = UCConfig.getInstance().getString("tell","format");
+			List<String> messages = UCConfig.getInstance().getStringList("tell","hover-messages");
 						
 			String tooltip = "";
 			if (!messages.isEmpty() && messages.get(0).length() > 1){
@@ -400,20 +400,20 @@ class UCMessages {
 	}
 	
 	private static String mention(Object sender, CommandSource receiver, String msg) {
-		if (UChat.get().getConfig().getBool("mention","enable")){
+		if (UCConfig.getInstance().getBool("mention","enable")){
 		    for (Player p:Sponge.getServer().getOnlinePlayers()){			
 				if (!sender.equals(p) && StringUtils.containsIgnoreCase(msg, p.getName())){
 					if (receiver instanceof Player && receiver.equals(p)){
 						
-						String mentionc = UChat.get().getConfig().getColor("mention","color-template").replace("{mentioned-player}", p.getName());
+						String mentionc = UCConfig.getInstance().getColor("mention","color-template").replace("{mentioned-player}", p.getName());
 						mentionc = formatTags("", mentionc, sender, receiver, "", new UCChannel("mention"));
 						
-						if (msg.contains(mentionc) || sender instanceof CommandSource && !UChat.get().getPerms().hasPerm((CommandSource)sender, "chat.mention")){
+						if (msg.contains(mentionc) || sender instanceof CommandSource && !UltimateChat.getPerms().hasPerm((CommandSource)sender, "chat.mention")){
 							msg = msg.replaceAll("(?i)\\b"+p.getName()+"\\b", p.getName());
 							continue;
 						}
 						
-						Optional<SoundType> sound = Sponge.getRegistry().getType(SoundType.class, UChat.get().getConfig().getString("mention","playsound"));
+						Optional<SoundType> sound = Sponge.getRegistry().getType(SoundType.class, UCConfig.getInstance().getString("mention","playsound"));
 						if (sound.isPresent() && !msg.contains(mentionc)){
 							((Player)receiver).playSound(sound.get(),((Player)receiver).getLocation().getPosition(), 1, 1);
 						}
@@ -470,13 +470,13 @@ class UCMessages {
 			
 			text = text.replace("{world}", sender.getWorld().getName());
 			
-			if (UChat.get().getEco() != null){
-				UniqueAccount acc = UChat.get().getEco().getOrCreateAccount(sender.getUniqueId()).get();
+			if (UltimateChat.getEco() != null){
+				UniqueAccount acc = UltimateChat.getEco().getOrCreateAccount(sender.getUniqueId()).get();
 				text = text
-						.replace("{balance}", ""+acc.getBalance(UChat.get().getEco().getDefaultCurrency()).intValue());
+						.replace("{balance}", ""+acc.getBalance(UltimateChat.getEco().getDefaultCurrency()).intValue());
 			}
 			
-			Subject sub = UChat.get().getPerms().getGroupAndTag(sender);			
+			Subject sub = UltimateChat.getPerms().getGroupAndTag(sender);
 			if (sub != null){
 				text = text.replace("{option_group}", sub.getIdentifier());
 				if (sub.getOption("prefix").isPresent()){
@@ -494,7 +494,7 @@ class UCMessages {
 				}
 			}			
 						
-			if (UChat.get().getConfig().getBool("hooks","MCClans","enable")){
+			if (UCConfig.getInstance().getBool("hooks","MCClans","enable")){
 				Optional<ClanService> clanServiceOpt = Sponge.getServiceManager().provide(ClanService.class);
                 if (clanServiceOpt.isPresent()) {
 					ClanService clan = clanServiceOpt.get();
@@ -517,9 +517,9 @@ class UCMessages {
 		text = text.replace("{option_suffix}", "&r: ");
 		
 		if (cmdSender instanceof CommandSource){
-			text = text.replace("{nickname}", UChat.get().getConfig().getString("general","console-tag").replace("{console}", ((CommandSource)cmdSender).getName()));
+			text = text.replace("{nickname}", UCConfig.getInstance().getString("general","console-tag").replace("{console}", ((CommandSource)cmdSender).getName()));
 		} else {
-			text = text.replace("{nickname}", UChat.get().getConfig().getString("general","console-tag").replace("{console}", (String)cmdSender));
+			text = text.replace("{nickname}", UCConfig.getInstance().getString("general","console-tag").replace("{console}", (String)cmdSender));
 		}
 			
 		/*
@@ -532,7 +532,7 @@ class UCMessages {
 		//remove blank items		
 		text = text.replaceAll("\\{.*\\}", "");		
 		if (!tag.equals("message")){
-			for (String rpl:UChat.get().getConfig().getStringList("general","remove-from-chat")){
+			for (String rpl: UCConfig.getInstance().getStringList("general","remove-from-chat")){
 				text = text.replace(rpl, "");
 			}
 		}		

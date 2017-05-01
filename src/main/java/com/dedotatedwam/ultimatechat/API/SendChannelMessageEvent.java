@@ -1,15 +1,14 @@
-package br.net.fabiozumbi12.UltimateChat.API;
+package com.dedotatedwam.ultimatechat.API;
 
-import java.util.HashMap;
-
+import com.dedotatedwam.ultimatechat.UCChannel;
+import com.dedotatedwam.ultimatechat.config.UCConfig;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.event.Cancellable;
 import org.spongepowered.api.event.Event;
 import org.spongepowered.api.event.cause.Cause;
 import org.spongepowered.api.event.cause.NamedCause;
 
-import br.net.fabiozumbi12.UltimateChat.UCChannel;
-import br.net.fabiozumbi12.UltimateChat.UChat;
+import java.util.HashMap;
 
 /**This event listen to all chat messages sent by player and allow devs to change the message, tags, channel and canccel the chat event too.
  * @author FabioZumbi12
@@ -30,7 +29,7 @@ public class SendChannelMessageEvent implements Cancellable, Event  {
 		this.sender = sender;
 		this.msg = msg;
 		this.channel = channel;
-		this.defBuilder = UChat.get().getConfig().getDefBuilder();
+		this.defBuilder = UCConfig.getInstance().getDefBuilder();
 		this.defFormat = defFormat;
 		this.registeredTags = registeredReplacers;
 		this.cancelIncoming = cancelIncoming;
@@ -115,7 +114,7 @@ public class SendChannelMessageEvent implements Cancellable, Event  {
 	 * @param newCh - New UCChannel component to send the message.
 	 */
 	public void setChannel(String newCh){
-		this.channel = UChat.get().getConfig().getChannel(newCh);
+		this.channel = UCConfig.getInstance().getChannel(newCh);
 	}
 	
 	/**Get the actual channel will be send the message.

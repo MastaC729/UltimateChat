@@ -1,13 +1,6 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-
+import com.dedotatedwam.ultimatechat.config.UCConfig;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.entity.living.player.Player;
@@ -15,6 +8,12 @@ import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.Text.Builder;
 import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.serializer.TextSerializers;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
 
 public class UCUtil {
 
@@ -32,18 +31,13 @@ public class UCUtil {
 	}
 	
 	public static void saveResource(String name, File saveTo){
-		try {
-			InputStream isReader = UChat.class.getResourceAsStream(name);
-			FileOutputStream fos = new FileOutputStream(saveTo);
-			while (isReader.available() > 0) {  // write contents of 'is' to 'fos'
-		        fos.write(isReader.read());
-		    }
-		    fos.close();
-		    isReader.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if (Files.notExists(saveTo.toPath())) {
+			try {
+				System.out.println("Name of resource: " + name); //TODO REMOVE THIS DUMBASS
+				UltimateChat.plugin.getAsset(name).get().copyToFile(saveTo.toPath());
+			} catch (IOException e) {
+				UltimateChat.getLogger().error("Error when loading resource " + name + "!", e);
+			}
 		}
 	}
 		
@@ -56,22 +50,22 @@ public class UCUtil {
 		 boolean isCmd = false;
 		 boolean isUrl = false;
 		 for (String arg:args){
-			 if (arg.contains(UChat.get().getConfig().getString("broadcast","on-hover"))){
-				 hover.append(" "+arg.replace(UChat.get().getConfig().getString("broadcast","on-hover"), ""));
+			 if (arg.contains(UCConfig.getInstance().getString("broadcast","on-hover"))){
+				 hover.append(" "+arg.replace(UCConfig.getInstance().getString("broadcast","on-hover"), ""));
 				 isHover = true;
 				 isCmd = false;
 				 isUrl = false;
 				 continue;
 			 }
-			 if (arg.contains(UChat.get().getConfig().getString("broadcast","on-click"))){
-				 cmdline.append(" "+arg.replace(UChat.get().getConfig().getString("broadcast","on-click"), ""));
+			 if (arg.contains(UCConfig.getInstance().getString("broadcast","on-click"))){
+				 cmdline.append(" "+arg.replace(UCConfig.getInstance().getString("broadcast","on-click"), ""));
 				 isCmd = true;
 				 isHover = false;
 				 isUrl = false;
 				 continue;
 			 }
-			 if (arg.contains(UChat.get().getConfig().getString("broadcast","url"))){
-				 url.append(" "+arg.replace(UChat.get().getConfig().getString("broadcast","url"), ""));
+			 if (arg.contains(UCConfig.getInstance().getString("broadcast","url"))){
+				 url.append(" "+arg.replace(UCConfig.getInstance().getString("broadcast","url"), ""));
 				 isCmd = false;
 				 isHover = false;
 				 isUrl = true;

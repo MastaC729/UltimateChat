@@ -1,63 +1,68 @@
-package br.net.fabiozumbi12.UltimateChat.config;
+package com.dedotatedwam.ultimatechat.config;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-
+import com.dedotatedwam.ultimatechat.UCChannel;
+import com.dedotatedwam.ultimatechat.UCUtil;
+import com.dedotatedwam.ultimatechat.UltimateChat;
+import com.google.common.reflect.TypeToken;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-
 import org.spongepowered.api.text.Text;
 
-import com.google.common.reflect.TypeToken;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.*;
 
-import br.net.fabiozumbi12.UltimateChat.UCChannel;
-import br.net.fabiozumbi12.UltimateChat.UCUtil;
-import br.net.fabiozumbi12.UltimateChat.UChat;
+public class UCConfig {
 
-public class UCConfig{
-	
+	private static UCConfig instance = new UCConfig();
+
+	public static UCConfig getInstance() {
+		return instance;
+	}
+
+	private UCConfig() { }
+
+	// TODO make this a singleton class, i.e. make every method static and add a null private constructor
+	// TODO Offload lang stuff to resources
+
 	private HashMap<List<String>,UCChannel> channels = null;
-	
-	private File defConfig = new File(UChat.get().configDir()+"config.conf");
-	private CommentedConfigurationNode config;	
+
+	private CommentedConfigurationNode config;
 	private ConfigurationLoader<CommentedConfigurationNode> configManager;
-	
-	private File defProt = new File(UChat.get().configDir()+"protections.conf");
-	private CommentedConfigurationNode prots;	
+
+	private CommentedConfigurationNode prots;
 	private ConfigurationLoader<CommentedConfigurationNode> protsManager;
-	
-	public UCConfig(UChat plugin) throws IOException {
-		
-		UChat.get().getLogger().info("-> Config module");
+
+	// Loads the config from scratch
+	// Used in multiple scenarios
+	public void init() throws IOException {
+
+		UltimateChat.getLogger().info("-> Config module");
 		try {
-			Files.createDirectories(new File(UChat.get().configDir()).toPath());
+			Files.createDirectories(new File(UltimateChat.configDir()).toPath());
+			File defConfig = new File(UltimateChat.configDir() + "config.conf");
 			if (!defConfig.exists()){
-				UChat.get().getLogger().info("Creating config file...");
+				UltimateChat.getLogger().info("Creating config file...");
 				defConfig.createNewFile();
 			}
 			
 			/*--------------------- config.conf ---------------------------*/
-			configManager = HoconConfigurationLoader.builder().setFile(defConfig).build();	
+			configManager = HoconConfigurationLoader.builder().setFile(defConfig).build();
 			config = configManager.load();
-			
+
 			config.getNode("_config-version").setValue(config.getNode("_config-version").getDouble(1.0));
 			config.getNode("debug-messages").setValue(config.getNode("debug-messages").getBoolean(false));
 			config.getNode("language").setValue(config.getNode("language").getString("EN-US"));
-			
+
 			config.getNode("mention").setComment("Use mentions on chat to change the player name color and play a sound on mention.");
 			config.getNode("mention","enable").setValue(config.getNode("mention","enable").getBoolean(true));
 			config.getNode("mention","color-template").setValue(config.getNode("mention","color-template").getString("&e@{mentioned-player}&r"));
 			config.getNode("mention","playsound").setValue(config.getNode("mention","playsound").getString("minecraft:block.note.pling"));
 			config.getNode("mention","hover-message").setValue(config.getNode("mention","hover-message").getString("&e{playername} mentioned you!"));
-			
+
 			config.getNode("general").setComment("General settings.");
 			config.getNode("general","URL-template").setValue(config.getNode("general","URL-template").getString("Click to open &n{url}&r"))
 			.setComment("Template to show when players send links or urls.");
@@ -77,7 +82,7 @@ public class UCConfig{
 			.setComment("This is the main tag builder.\n"
 					+ "Change the order of this tags to change how tag is displayed on chat.\n"
 					+ "This tags represent the names of tag in this configuration.");
-			
+
 			config.getNode("tell","enable").setValue(config.getNode("tell","enable").getBoolean(true))
 			.setComment("Enabling tell will unregister other plugins using tell like nucleus, and will use only this tell.");
 			config.getNode("tell","cmd-aliases").setValue(config.getNode("tell","cmd-aliases").getString("tell,t,w,m,msg,private,priv"))
@@ -88,7 +93,7 @@ public class UCConfig{
 			.setComment("Suffix (or message) of tell.");
 			config.getNode("tell","hover-messages").setValue(config.getNode("tell","hover-messages").getString(""))
 			.setComment("Hover messages to show on tell messages.");
-			
+
 			config.getNode("broadcast","enable").setValue(config.getNode("broadcast","enable").getBoolean(true))
 			.setComment("Enable broadcast. Enabling this will unregister any other broadcasts commands using the same aliases.");
 			config.getNode("broadcast","on-hover").setValue(config.getNode("broadcast","on-hover").getString("hover:"))
@@ -99,10 +104,10 @@ public class UCConfig{
 			.setComment("Tag to use on broadcast message to set a hover event.");
 			config.getNode("broadcast","aliases").setValue(config.getNode("broadcast","aliases").getString("broadcast,broad,announce,say,action,all,anunciar,todos"))
 			.setComment("Aliases to use for broadcast.");
-			
+
 			config.getNode("hooks").setComment("Enable hook with other plugins here. Only enable if installed.");
 			config.getNode("hooks","MCClans","enable").setValue(config.getNode("hooks","MCClans","enable").getBoolean(false));
-			
+
 			config.getNode("tags").setComment("This is where you will create as many tags you want.\n"
 					+ "You can use the tag \"custon-tag\" as base to create your own tags.\n"
 					+ "When finish, get the name of your tag and put on \"general.default-tag-build\" \n"
@@ -110,65 +115,66 @@ public class UCConfig{
 			if (!config.getNode("tags").hasMapChildren()){
 				config.getNode("tags","prefix","format").setValue("{option_prefix}");
 				config.getNode("tags","prefix","hover-messages").setValue(Arrays.asList("&3Rank: &f{option_display_name}"));
-				
+
 				config.getNode("tags","nickname","format").setValue("{nickname}");
 				config.getNode("tags","nickname","hover-messages").setValue(Arrays.asList("&3Player: &f{playername}","&3Money: &7{balance}"));
-				
+
 				config.getNode("tags","playername","format").setValue("{playername}");
 				config.getNode("tags","nickname","hover-messages").setValue(Arrays.asList("&3Player: &f{playername}","&3Money: &7{balance}"));
-				
+
 				config.getNode("tags","suffix","format").setValue("{option_suffix}");
-												
+
 				config.getNode("tags","world","format").setValue("&7[{world}]&r");
 				config.getNode("tags","world","hover-messages").setValue(Arrays.asList("&7Sent from world {world}"));
-								
+
 				config.getNode("tags","message","format").setValue("{message}");
-				
+
 				config.getNode("tags","ch-tags","format").setValue("{ch-color}[{ch-alias}]&r");
 				config.getNode("tags","ch-tags","click-cmd").setValue("ch {ch-alias}");
 				config.getNode("tags","ch-tags","hover-messages").setValue(Arrays.asList("&3Channel name: {ch-color}{ch-name}","&bClick to join this channel"));
-				
+
 				config.getNode("tags","admin-chat","format").setValue("&b[&r{playername}&b]&r: &b");
-												
+
 				config.getNode("tags","custom-tag","format").setValue("&7[&2MyTag&7]");
 				config.getNode("tags","custom-tag","click-cmd").setValue("");
 				config.getNode("tags","custom-tag","hover-messages").setValue(Arrays.asList(""));
 				config.getNode("tags","custom-tag","permission").setValue("any-name-perm.custom-tag");
 				config.getNode("tags","custom-tag","show-in-worlds").setValue(Arrays.asList(""));
-				config.getNode("tags","custom-tag","hide-in-worlds").setValue(Arrays.asList(""));				
+				config.getNode("tags","custom-tag","hide-in-worlds").setValue(Arrays.asList(""));
 			}
 			
 			/*------------------------ add new configs -------------------------*/
 			int update = 0;
 			if (config.getNode("_config-version").getDouble() < 1.1){
 				config.getNode("_config-version").setValue(1.1);
-				
+
 				config.getNode("tags","vannila-chat").setComment("This is the default vanilla chat format.\n"
 						+ "Add this tag name to the default-builder if you want to use \n"
 						+ "vanilla or if other plugins have modificed the tags like nickname of Nucleus.");
 				config.getNode("tags","vannila-chat","format").setValue("{chat_header}{chat_body}");
 				update++;
 			}
-			
+
 			if (update > 0){
-				UChat.get().getLogger().warning("Configuration updated with new options.");
+				UltimateChat.getLogger().info("Configuration updated with new options.");
 			}
 			
 			/*--------------------- protections.conf ---------------------------*/
-			protsManager = HoconConfigurationLoader.builder().setFile(defProt).build();	
+			File defProt = new File(UltimateChat.configDir() + "protections.conf");
+			protsManager = HoconConfigurationLoader.builder().setFile(defProt).build();
 			prots = protsManager.load();
-			
+
 			prots.getNode("chat-protection","chat-enhancement","enable").setValue(prots.getNode("chat-protection","chat-enhancement","enable").getBoolean(true));
 			prots.getNode("chat-protection","chat-enhancement","end-with-dot").setValue(prots.getNode("chat-protection","chat-enhancement","end-with-dot").getBoolean(true));
 			prots.getNode("chat-protection","chat-enhancement","minimum-lenght").setValue(prots.getNode("chat-protection","chat-enhancement","minimum-lenght").getInt(3));
-			
+
 			prots.getNode("chat-protection","anti-flood","enable").setValue(prots.getNode("chat-protection","anti-flood","enable").getBoolean(true));
 			prots.getNode("chat-protection","anti-flood","whitelist-flood-characs")
 			.setValue(prots.getNode("chat-protection","anti-flood","whitelist-flood-characs").getList(TypeToken.of(String.class), Arrays.asList("k")));
-			
+
 			prots.getNode("chat-protection","caps-filter","enable").setValue(prots.getNode("chat-protection","caps-filter","enable").getBoolean(true));
 			prots.getNode("chat-protection","caps-filter","minimum-lenght").setValue(prots.getNode("chat-protection","caps-filter","minimum-lenght").getInt(3));
-			
+
 			prots.getNode("chat-protection","antispam","enable").setValue(prots.getNode("chat-protection","antispam","enable").getBoolean(false));
 			prots.getNode("chat-protection","antispam","time-beteween-messages").setValue(prots.getNode("chat-protection","antispam","time-beteween-messages").getInt(1));
 			prots.getNode("chat-protection","antispam","count-of-same-message").setValue(prots.getNode("chat-protection","antispam","count-of-same-message").getInt(5));
@@ -176,7 +182,7 @@ public class UCConfig{
 			prots.getNode("chat-protection","antispam","colldown-msg").setValue(prots.getNode("chat-protection","antispam","colldown-msg").getString("&6Slow down your messages!"));
 			prots.getNode("chat-protection","antispam","wait-message").setValue(prots.getNode("chat-protection","antispam","wait-message").getString("&cWait to send the same message again!"));
 			prots.getNode("chat-protection","antispam","cmd-action").setValue(prots.getNode("chat-protection","antispam","cmd-action").getString("kick {player} Relax, slow down your messages frequency ;)"));
-			
+
 			prots.getNode("chat-protection","censor","enable").setValue(prots.getNode("chat-protection","censor","enable").getBoolean(true));
 			prots.getNode("chat-protection","censor","replace-by-symbol").setValue(prots.getNode("chat-protection","censor","replace-by-symbol").getBoolean(true));
 			prots.getNode("chat-protection","censor","by-symbol").setValue(prots.getNode("chat-protection","censor","by-symbol").getString("*"));
@@ -187,7 +193,7 @@ public class UCConfig{
 			prots.getNode("chat-protection","censor","action","partial-words").setValue(prots.getNode("chat-protection","censor","action","partial-words").getBoolean(false));
 			prots.getNode("chat-protection","censor","replace-words")
 			.setValue(prots.getNode("chat-protection","censor","replace-words").getList(TypeToken.of(String.class), Arrays.asList("word1")));
-			
+
 			prots.getNode("chat-protection","anti-ip","enable").setValue(prots.getNode("chat-protection","anti-ip","enable").getBoolean(true));
 			prots.getNode("chat-protection","anti-ip","custom-ip-regex").setValue(prots.getNode("chat-protection","anti-ip","custom-ip-regex").getString("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"));
 			prots.getNode("chat-protection","anti-ip","custom-url-regex").setValue(prots.getNode("chat-protection","anti-ip","custom-url-regex").getString("((http:\\/\\/|https:\\/\\/)?(www.)?(([a-zA-Z0-9-]){2,}\\.){1,4}([a-zA-Z]){2,6}(\\/([a-zA-Z-_\\/\\.0-9#:?=&;,]*)?)?)"));
@@ -205,40 +211,41 @@ public class UCConfig{
 			prots.getNode("chat-protection","anti-ip","punish","mute-msg").setValue(prots.getNode("chat-protection","anti-ip","punish","mute-msg").getString("&cYou have been muted for send IPs or URLs on chat!"));
 			prots.getNode("chat-protection","anti-ip","punish","unmute-msg").setValue(prots.getNode("chat-protection","anti-ip","punish","unmute-msg").getString("&aYou can chat again!"));
 			prots.getNode("chat-protection","anti-ip","punish","cmd-punish").setValue(prots.getNode("chat-protection","anti-ip","punish","cmd-punish").getString("tempban {player} 10m &cYou have been warned about send links or IPs on chat!"));
-			
+
 		} catch (IOException | ObjectMappingException e) {
 			e.printStackTrace();
 		}
-				
-    	    File chfolder = new File(UChat.get().configDir()+File.separator+"channels");
-    	            
+
+    	    File chfolder = new File(UltimateChat.configDir()+File.separator+"channels");
+
     	    if (!chfolder.exists()) {
             	chfolder.mkdir();
-                UChat.get().getLogger().info("Created folder: " +chfolder.getPath());
-            }    	            
-    	            
+				UltimateChat.getLogger().info("Created folder: " +chfolder.getPath());
+            }
+
     	  //--------------------------------------- Load Aliases -----------------------------------//
-            
+
             channels = new HashMap<List<String>,UCChannel>();
             File[] listOfFiles = chfolder.listFiles();
             if (listOfFiles.length == 0){
-            	UCUtil.saveResource("global.conf", new File(chfolder+File.separator+"global.conf"));
-            	UCUtil.saveResource("local.conf", new File(chfolder+File.separator+"local.conf"));
-            	UCUtil.saveResource("admin.conf", new File(chfolder+File.separator+"admin.conf"));
+            	UCUtil.saveResource("config/global.conf", new File(chfolder+File.separator+"global.conf"));
+            	UCUtil.saveResource("config/local.conf", new File(chfolder+File.separator+"local.conf"));
+            	UCUtil.saveResource("config/admin.conf", new File(chfolder+File.separator+"admin.conf"));
             	listOfFiles = chfolder.listFiles();
             }
-            
-            CommentedConfigurationNode channel;	
+
+            CommentedConfigurationNode channel;
         	ConfigurationLoader<CommentedConfigurationNode> channelManager;
-            
+
     		for (File file:listOfFiles){
+
     			if (file.getName().endsWith(".conf")){
-    				channelManager = HoconConfigurationLoader.builder().setFile(file).build();	
+    				channelManager = HoconConfigurationLoader.builder().setFile(file).build();
     				channel = channelManager.load();
-    				
+
 					try {
-						UCChannel ch = new UCChannel(channel.getNode("name").getString(), 
-								channel.getNode("alias").getString(), 
+						UCChannel ch = new UCChannel(channel.getNode("name").getString(),
+								channel.getNode("alias").getString(),
 								channel.getNode("across-worlds").getBoolean(true),
 								channel.getNode("distance").getInt(0),
 								channel.getNode("color").getString("&b"),
@@ -259,13 +266,13 @@ public class UCConfig{
 					}
     			}
     		}
-                    
+
     		//-------------------------------- Change config Header ----------------------------------//
-            
+
     		String lang = config.getNode("language").getString("EN-US");
     		if (lang.equalsIgnoreCase("EN-US")){
     			config.getNode("_config-version").setComment(""
-    					+ "Uchat configuration file\n"
+    					+ "UltimateChat configuration file\n"
     					+ "Author: FabioZumbi12\n"
     					+ "We recommend you to use NotePad++ to edit this file and avoid TAB errors!\n"
     					+ "------------------------------------------------------------------------\n"
@@ -314,7 +321,7 @@ public class UCConfig{
     		}
     		if (lang.equalsIgnoreCase("PT-BR")){
     			config.getNode("_config-version").setComment(""
-    					+ "Arquivo de configuração do Uchat\n"
+    					+ "Arquivo de configuração do UltimateChat\n"
     					+ "Autor: FabioZumbi12\n"
     					+ "Recomando usar o Notepad++ para editar este arquivo!\n"
     					+ "------------------------------------------------------------------------\n"
@@ -363,47 +370,45 @@ public class UCConfig{
     		}
     		
     		/*------------------------------------------------------------------------------------*/
-    		
+
     		//----------------------------------------------------------------------------------------//
-			save();        			
-            UChat.get().getLogger().info("All configurations loaded!");
+			save();
+			UltimateChat.getLogger().info("All configurations loaded!");
 	}
-    
+
 	public List<String> getTagList(){
 		List<String> tags = new ArrayList<String>();
 		config.getChildrenMap().keySet().forEach(key -> {
 			if (key.toString().startsWith("tags.") && config.getNode(key).hasMapChildren()){
 				tags.add(key.toString().replace("tags.", ""));
 			}
-		});		
-		getStringList("general.custom-tags").forEach(key -> {
-			tags.add(key);
 		});
+		tags.addAll(getStringList("general.custom-tags"));
 		return tags;
 	}
-	
-	public UCChannel getChannel(String alias){		
+
+	public UCChannel getChannel(String alias){
 		for (List<String> aliases:channels.keySet()){
-			if (aliases.contains(alias.toLowerCase())){				
+			if (aliases.contains(alias.toLowerCase())){
 				return channels.get(aliases);
 			}
 		}
 		return null;
 	}
-	
+
 	public Collection<UCChannel> getChannels(){
 		return this.channels.values();
 	}
-	
+
 	public void addChannel(UCChannel ch) throws IOException{
-		
-		CommentedConfigurationNode chFile;	
-    	ConfigurationLoader<CommentedConfigurationNode> channelManager;		
-		File defch = new File(UChat.get().configDir()+File.separator+"channels"+File.separator+ch.getName()+".conf");	
-		
-		channelManager = HoconConfigurationLoader.builder().setFile(defch).build();	
+
+		CommentedConfigurationNode chFile;
+    	ConfigurationLoader<CommentedConfigurationNode> channelManager;
+		File defch = new File(UltimateChat.configDir()+File.separator+"channels"+File.separator+ch.getName()+".conf");
+
+		channelManager = HoconConfigurationLoader.builder().setFile(defch).build();
 		chFile = channelManager.load();
-		
+
 		chFile.getNode("across-worlds").setComment(""
 				+ "###################################################\n"
 				+ "############## Channel Configuration ##############\n"
@@ -430,8 +435,8 @@ public class UCConfig{
 				+ "  sendAs: player - Send the command alias as 'player' or 'console'?\n"
 				+ "  cmd: '' - Command to send on every message send by this channel.\n"
 				+ "available-worlds - Worlds and only this world where this chat can be used and messages sent/received.\n");
-		chFile.getNode("name").setValue(ch.getName());
-		chFile.getNode("alias").setValue(ch.getAlias());
+		chFile.getNode("name").setValue(ch.getName().toLowerCase());		// There is no point in case-sensitivity
+		chFile.getNode("alias").setValue(ch.getAlias().toLowerCase());
 		chFile.getNode("across-worlds").setValue(ch.crossWorlds());
 		chFile.getNode("distance").setValue(ch.getDistance());
 		chFile.getNode("color").setValue(ch.getColor());
@@ -445,11 +450,11 @@ public class UCConfig{
 		chFile.getNode("channelAlias","enable").setValue(ch.isCmdAlias());
 		chFile.getNode("channelAlias","sendAs").setValue(ch.getAliasSender());
 		chFile.getNode("channelAlias","cmd").setValue(ch.getAliasCmd());
-		chFile.getNode("available-worlds").setValue(ch.availableWorlds());		
+		chFile.getNode("available-worlds").setValue(ch.availableWorlds());
 		channelManager.save(chFile);
 		channels.put(Arrays.asList(ch.getName(), ch.getAlias().toLowerCase()), ch);
 	}
-	
+
 	public void unMuteInAllChannels(String player){
 		for (UCChannel ch:channels.values()){
 			if (ch.isMuted(player)){				
@@ -469,7 +474,7 @@ public class UCConfig{
 	public UCChannel getDefChannel(){
 		UCChannel ch = getChannel(getString("general","default-channel"));
 		if (ch == null){
-			UChat.get().getLogger().warning("Defalt channel not found with alias '"+getString("general","default-channel")+"'. Fix this setting to a valid channel alias.");
+			UltimateChat.getLogger().info("Defalt channel not found with alias '"+getString("general","default-channel")+"'. Fix this setting to a valid channel alias.");
 		}
 		return ch;
 	}
@@ -563,7 +568,7 @@ public class UCConfig{
 	}
 	        
 	public String getProtString(Object... key){
-		return prots.getNode(key).getString(key.toString());
+		return prots.getNode(key).getString(Arrays.toString(key));
 	}
 	
 	public Text getProtMsg(Object... key){

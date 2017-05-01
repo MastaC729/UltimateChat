@@ -1,17 +1,16 @@
-package br.net.fabiozumbi12.UltimateChat;
+package com.dedotatedwam.ultimatechat;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
+import com.dedotatedwam.ultimatechat.config.UCConfig;
+import com.dedotatedwam.ultimatechat.config.UCLang;
+import com.google.inject.Inject;
+import org.slf4j.Logger;
 import org.spongepowered.api.Game;
 import org.spongepowered.api.Server;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.GameReloadEvent;
+import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.game.state.GameStoppingServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
@@ -19,65 +18,60 @@ import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.service.economy.EconomyService;
 
-import br.net.fabiozumbi12.UltimateChat.config.UCConfig;
-import br.net.fabiozumbi12.UltimateChat.config.UCLang;
-import br.net.fabiozumbi12.UltimateChat.config.VersionData;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
-import com.google.inject.Inject;
+@Plugin(
+		id = "ultimatechat",
+		name = "UltimateChat",
+		version = "1.8.0",
+		description="Fork of UltimateChat by FabioZumbi12 with some additional features and tweaks.",
+		url = "http://www.phynixmc.com",
+		authors = {
+				"FabioZumbi12",
+				"MastaC",
+				"kosakriszi"
+		}
+)
+public class UltimateChat {
 
-@Plugin(id = "ultimatechat", 
-name = "UltimateChat", 
-version = VersionData.VERSION,
-authors="FabioZumbi12", 
-description="Complete and advanced chat plugin")
-public class UChat {
-	
-	private UCLogger logger;
-	public UCLogger getLogger(){	
-		return logger;
+	private static UltimateChat instance;
+
+	@Inject private Logger logger;
+	@Inject private Game game;
+	public static Logger getLogger(){
+		return UltimateChat.instance.logger;
 	}
-		
-	private String configDir;
-	public String configDir(){
-		return this.configDir;
-	}
-	
-	@Inject private Game game;	
+
 	public Game getGame(){
-		return this.game;
+		return instance.game;
+	}
+
+	private String configDir;
+	public static String configDir(){
+		return instance.configDir;
 	}
 	
-	public static PluginContainer plugin;	
-	
-	private UCConfig cfgs;
-	public UCConfig getConfig(){
-		return this.cfgs;
-	}
+	public static PluginContainer plugin;
 	
 	private UCCommands cmds;
 
-	private Server serv;
+	private static Server serv;
 
 	private EconomyService econ;
 
 	private UCPerms perms;
-	public UCPerms getPerms(){
-		return this.perms;
+	public static UCPerms getPerms(){
+		return instance.perms;
 	}
 	
-	public EconomyService getEco(){
-		return this.econ;
+	public static EconomyService getEco(){
+		return instance.econ;
 	}
-	
-	public UCCommands getCmds(){
-		return this.cmds;
-	}
-	
-	private static UChat uchat;
-	public static UChat get(){
-		return uchat;
-	}
-	
+
 	static HashMap<String,String> pChannels = new HashMap<String,String>();
 	static HashMap<String,String> tempChannels = new HashMap<String,String>();
 	static HashMap<String,String> tellPlayers = new HashMap<String,String>();
@@ -85,40 +79,45 @@ public class UChat {
 	static HashMap<String,String> respondTell = new HashMap<String,String>();
 	static HashMap<String,List<String>> ignoringPlayer = new HashMap<String,List<String>>();
 	static List<String> mutes = new ArrayList<String>();
-	static List<String> isSpy = new ArrayList<String>();	
-		
+	static List<String> isSpy = new ArrayList<String>();
+
 	@Listener
-    public void onServerStart(GameStartedServerEvent event) {	
+	public void onPreInitialization(GamePreInitializationEvent event) {
+		UltimateChat.instance = this;
+		// this.logger.info("UltimateChat Phynix version " + plugin.getVersion() + " is loading..."); TODO get this working again, for now use the below line
+		this.logger.info("UltimateChat Phynix is now loading...");
+		UltimateChat.serv = this.game.getServer();
+	}
+
+	@Listener
+    public void onServerStart(GameStartedServerEvent event) {
         try {
         	plugin = Sponge.getPluginManager().getPlugin("ultimatechat").get();
-        	uchat = this;   
-        	this.configDir = game.getConfigManager().getSharedConfig(plugin).getDirectory()+File.separator+plugin.getName()+File.separator;        	     	
-        	this.serv = Sponge.getServer();
-        	
-        	//init logger
-        	this.logger = new UCLogger(this.serv);
-        	//init config
-        	this.cfgs = new UCConfig(this);
-    		//init lang
+        	this.configDir = game.getConfigManager().getSharedConfig(plugin).getDirectory()+File.separator+plugin.getName()+File.separator;		// TODO Simplify this to use injection annotation
+
+        	// Initialize config
+        	UCConfig.getInstance().init();
+    		// Initialize lang
             UCLang.init();
-            //init perms
+            // Initialize perms TODO ???? initialize perms? wtf?
             this.perms = new UCPerms(this.game);
-            
+
+            // Register commands
             logger.info("Init commands module...");
-    		this.cmds = new UCCommands(this);
+    		this.cmds = new UCCommands();
     		
     		game.getEventManager().registerListeners(plugin, new UCListener());         
                         
             for (Player p:serv.getOnlinePlayers()){
             	if (!pChannels.containsKey(p.getName())){
-            		pChannels.put(p.getName(), cfgs.getDefChannel().getAlias());
+            		pChannels.put(p.getName(), UCConfig.getInstance().getDefChannel().getAlias());
             	}
             }
             
-            get().getLogger().sucess(plugin.getName()+" "+plugin.getVersion().get()+" enabled!");
+            logger.info(plugin.getName()+" "+plugin.getVersion().get()+" enabled!");
             
         } catch (Exception e){
-        	e.printStackTrace();
+			logger.error("UltimateChat Phynix version " + plugin.getVersion() + " failed to start properly!", e);
         }
 	}
 	
@@ -129,14 +128,14 @@ public class UChat {
 		}
 	}
 	
-	public void reload() throws IOException{
-		this.cmds.removeCmds();
-		this.cfgs = new UCConfig(this);
+	public static void reload() throws IOException{
+		instance.cmds.removeCmds();
+		UCConfig.getInstance().init();
 		UCLang.init();
-		this.cmds = new UCCommands(this);
+		instance.cmds = new UCCommands();
 		for (Player p:serv.getOnlinePlayers()){
-			if (cfgs.getChannel(UChat.pChannels.get(p.getName())) == null){
-				UChat.pChannels.put(p.getName(), cfgs.getDefChannel().getAlias());
+			if (UCConfig.getInstance().getChannel(UltimateChat.pChannels.get(p.getName())) == null){
+				UltimateChat.pChannels.put(p.getName(), UCConfig.getInstance().getDefChannel().getAlias());
 			}					 
 		}		
 	}
@@ -152,6 +151,6 @@ public class UChat {
 	
 	@Listener
 	public void onStopServer(GameStoppingServerEvent e) {
-		get().getLogger().severe(plugin.getName()+" disabled!");
+		logger.info(plugin.getName()+" disabled!");
 	}		
 }
