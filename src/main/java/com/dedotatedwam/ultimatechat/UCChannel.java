@@ -1,18 +1,19 @@
 package com.dedotatedwam.ultimatechat;
 
-import org.spongepowered.api.entity.living.player.Player;
-import org.spongepowered.api.text.Text;
+import org.spongepowered.api.text.channel.MessageReceiver;
 import org.spongepowered.api.text.channel.MutableMessageChannel;
 import org.spongepowered.api.world.World;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
-public class UCChannel {
+public class UCChannel implements MutableMessageChannel {
 
 	private String name;
 	private String alias;
-	private boolean worlds = true;
+	private boolean worlds = true;	// Corresponds to across-worlds in the channel config
 	private int dist = 0;
 	private String color = "&a";
 	private String builder = "";
@@ -28,8 +29,15 @@ public class UCChannel {
 	private String aliasCmd = "";
 	private List<String> availableWorlds = new ArrayList<String>();
 	private boolean canLock = true;
+	private boolean overrideTagBuilder = false;				// Overrides the tag builder when set to true
+	private String customPrefix = ""; 						// Custom prefix before message, used when overrideTagBuilder is set to true
+	private boolean leaveable = true;						// Whether or not a player can ignore the channel by doing /chat ignore [channel]
+	private List<MessageReceiver> members = new ArrayList<>();		// Used to store the players who are currently joined in on the chat.	// TODO store this in a database for channel persistence
 
-	public UCChannel(String name, String alias, boolean worlds, int dist, String color, String builder, boolean focus, boolean receiversMsg, double cost, boolean isbungee, boolean ownBuilder, boolean isAlias, String aliasSender, String aliasCmd, List<String> availableWorlds, boolean lock) {
+	public UCChannel(String name, String alias, boolean worlds, int dist, String color, String builder,
+					 boolean focus, boolean receiversMsg, double cost, boolean isbungee, boolean ownBuilder,
+					 boolean isAlias, String aliasSender, String aliasCmd, List<String> availableWorlds, boolean lock,
+					 boolean overrideTagBuilder, String customPrefix, boolean leaveable) {
 		this.name = name;
 		this.alias = alias;
 		this.worlds = worlds;
@@ -46,6 +54,9 @@ public class UCChannel {
 		this.aliasSender = aliasSender;
 		this.availableWorlds = availableWorlds;	
 		this.canLock = lock;
+		this.overrideTagBuilder = overrideTagBuilder;
+		this.customPrefix = customPrefix;
+		this.leaveable = leaveable;
 	}
 			
 	UCChannel(String name) {
@@ -76,7 +87,8 @@ public class UCChannel {
 	public boolean isCmdAlias(){
 		return this.isAlias;
 	}
-	
+
+	// If this returns true, the channel has no custom builder and must use the one specified in the config
 	public boolean useOwnBuilder(){
 		return this.ownBuilder;
 	}
@@ -168,12 +180,42 @@ public class UCChannel {
 	public boolean isBungee() {		
 		return this.bungee ;
 	}
-	
-	public void sendMessage(Player p, String message){
-		Object[] chArgs = UCMessages.sendFancyMessage(new String[0], message, this, p, null);  
-		if (chArgs != null){
-			MutableMessageChannel msgCh = (MutableMessageChannel) chArgs[0];	
-			msgCh.send(Text.join((Text)chArgs[1],(Text)chArgs[2],(Text)chArgs[3]));
-		}
+
+	public boolean canOverrideTagBuilder() {
+		return overrideTagBuilder;
 	}
+
+	public String getCustomPrefix() {
+		return customPrefix;
+	}
+
+	public boolean isLeaveable() {
+		return leaveable;
+	}
+
+	@Override
+	public Collection<MessageReceiver> getMembers() {
+		return Collections.unmodifiableList(this.members);			// So no funny business happens with the members data container
+	}
+
+	@Override
+	public boolean addMember(MessageReceiver member) {
+		return this.members.add(member);
+	}
+
+	@Override
+	public boolean removeMember(MessageReceiver member) {
+		return this.members.remove(member);
+	}
+
+	@Override
+	public void clearMembers() {
+		this.members.clear();
+	}
+
+	//TODO In the future all message transformation needs to happen here
+	/*public Optional<Text> transformMessage(Object sender, MessageReceiver recipient, Text original) {
+
+
+	}*/
 }

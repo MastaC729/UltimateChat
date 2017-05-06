@@ -1,7 +1,6 @@
 package com.dedotatedwam.ultimatechat.API;
 
 import com.dedotatedwam.ultimatechat.UCChannel;
-import com.dedotatedwam.ultimatechat.UltimateChat;
 import com.dedotatedwam.ultimatechat.config.UCConfig;
 
 import java.io.IOException;
@@ -31,34 +30,71 @@ public class uChatAPI {
 		}
 		return false;
 	}
-	
+
+	// TODO Add the two new settings to this API method: overrideTagBuilder and customPrefix
+
 	/**Register a new channel and save on channels folder.
 	 * @param chName {@code String} - Channel name.
 	 * @param chAlias {@code String} - Channel alias.
-	 * @param crossWorlds {@code boolean} - Messages in this channel cross worlds
+	 * @param crossWorlds {@code boolean} - Messages in this channel can go to multiple worlds.
 	 * @param distance {@code int} - Distance the player will receive this channel messages.
 	 * @param color {@code String} - Channel color.
 	 * @param tagBuilder {@code String} - Tags names (set on main config) to show on chat.
 	 * @param needFocus {@code boolean} - Need to use {@code /ch <alias>} to send messages or not.
 	 * @param receiverMsg {@code boolean} - Send message if theres no player to receive the chat message.
 	 * @param cost {@code double} - Cost to use this channel.
+	 * @param leaveable (@code boolean) - Whether or not the player can ignore the channel, given they have the permission uchat.admin.ignoreoverride.[channel]
 	 * @return {@code true} - If registered with sucess or {@code false} if channel alerady registered.
 	 * @throws IOException - If can't save the channel file on channels folder.
 	 */
-	public static boolean registerNewChannel(String chName, String chAlias, boolean crossWorlds, int distance, String color, String tagBuilder, boolean needFocus, boolean receiverMsg, double cost, boolean bungee) throws IOException{
+	public static boolean registerNewChannel(String chName, String chAlias, boolean crossWorlds, int distance,
+											 String color, String tagBuilder, boolean needFocus, boolean receiverMsg,
+											 double cost, boolean bungee, boolean leaveable) throws IOException{
 		UCConfig config = UCConfig.getInstance();
 		if (config.getChannel(chName) != null){
+			return false;
+		}
+		// Channel aliases must be unique
+		if (config.getChAliases().contains(chAlias)) {
 			return false;
 		}
 		if (tagBuilder == null || tagBuilder.equals("")){
 			tagBuilder = UCConfig.getInstance().getString("general","default-tag-builder");
 		}
-		UCChannel ch = new UCChannel(chName, chAlias, crossWorlds, distance, color, tagBuilder, needFocus, receiverMsg, cost, bungee, false, false, "player", "", new ArrayList<String>(), true);
+		UCChannel ch = new UCChannel(chName, chAlias, crossWorlds, distance, color, tagBuilder, needFocus, receiverMsg,
+				cost, bungee, false, false, "player", "", new ArrayList<String>(),
+				true, false, "", leaveable);
 		config.addChannel(ch);
 		return true;
-	}	
+	}
 
-	/**Gets an existing channel, or null no channel matching name or alias
+	// TODO Add config option to allow permissions to override leaveable - I'm only doing this for support for other servers, since we want this to not be a feature
+
+	/**Register a new channel and save on channels folder. This is used in cases where the other setting will be specified later.
+	 * @param chName {@code String} - Channel name.
+	 * @param chAlias {@code String} - Channel alias.
+	 * @param color {@code String} - Channel color.
+	 * @return {@code true} - If registered with sucess or {@code false} if something in the registration went wrong, such as an existing channel name or an invalid input.
+	 * @throws IOException - If can't save the channel file on channels folder.
+	 */
+	public static boolean registerNewChannel(String chName, String chAlias, String color) throws IOException{
+		UCConfig config = UCConfig.getInstance();
+		if (config.getChannel(chName) != null){
+			return false;
+		}
+		// Channel aliases must be unique
+		// TODO add some language outputs here to tell the player they dun goof'd when they ran this command
+		if (config.getChAliases().contains(chAlias)) {
+			return false;
+		}
+		UCChannel ch = new UCChannel(chName, chAlias, true, 0, color, "", false,
+				false, 0, false, false, false, "player",
+				"", new ArrayList<String>(), true, false, "", true);
+		config.addChannel(ch);
+		return true;
+	}
+
+	/**Gets an existing channel. Returns null if it cannot find a matching channel name or chanel alias.
 	 * @param chName - Chanel name or alias.
 	 * @return {@code UCChanel} - The channel.
 	 */

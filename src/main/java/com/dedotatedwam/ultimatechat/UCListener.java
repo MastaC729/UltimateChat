@@ -39,6 +39,8 @@ public class UCListener {
 			e.setMessageCancelled(true);
 		} else {
 			UCChannel ch = UCConfig.getInstance().getChannel(UltimateChat.pChannels.get(p.getName()));
+
+			// TODO WTF DOES THIS DO???
 			if (UltimateChat.tempChannels.containsKey(p.getName()) && !UltimateChat.tempChannels.get(p.getName()).equals(ch.getAlias())){
 				ch = UCConfig.getInstance().getChannel(UltimateChat.tempChannels.get(p.getName()));
 				UltimateChat.tempChannels.remove(p.getName());
@@ -49,7 +51,8 @@ public class UCListener {
 				e.setMessageCancelled(true);
 				return;
 			}			
-			
+
+			// Command execution when channelAlias.enable is enabled in the channel's config
 			if (ch.isCmdAlias()){
 				String start = ch.getAliasCmd();
 				if (start.startsWith("/")){
@@ -70,7 +73,7 @@ public class UCListener {
 				if (args == null){					
 					e.setMessageCancelled(true);
 				} else {
-					MutableMessageChannel msgCh = (MutableMessageChannel) args[0];	
+					MutableMessageChannel msgCh = (MutableMessageChannel) args[0];		//TODO this seems to be where receive perms would be checked
 					msgCh.addMember(Sponge.getServer().getConsole());
 					
 					e.setChannel(msgCh);

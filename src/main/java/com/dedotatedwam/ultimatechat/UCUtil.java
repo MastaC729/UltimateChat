@@ -33,7 +33,6 @@ public class UCUtil {
 	public static void saveResource(String name, File saveTo){
 		if (Files.notExists(saveTo.toPath())) {
 			try {
-				System.out.println("Name of resource: " + name); //TODO REMOVE THIS DUMBASS
 				UltimateChat.plugin.getAsset(name).get().copyToFile(saveTo.toPath());
 			} catch (IOException e) {
 				UltimateChat.getLogger().error("Error when loading resource " + name + "!", e);

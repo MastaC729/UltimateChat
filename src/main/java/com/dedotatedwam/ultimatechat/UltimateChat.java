@@ -27,7 +27,7 @@ import java.util.List;
 @Plugin(
 		id = "ultimatechat",
 		name = "UltimateChat",
-		version = "1.8.0",
+		version = "1.8.2",
 		description="Fork of UltimateChat by FabioZumbi12 with some additional features and tweaks.",
 		url = "http://www.phynixmc.com",
 		authors = {
@@ -72,7 +72,7 @@ public class UltimateChat {
 		return instance.econ;
 	}
 
-	static HashMap<String,String> pChannels = new HashMap<String,String>();
+	static HashMap<String,String> pChannels = new HashMap<String,String>();		//TODO Have each UCChannel keep track of its members using MutableMessageChannel implementation
 	static HashMap<String,String> tempChannels = new HashMap<String,String>();
 	static HashMap<String,String> tellPlayers = new HashMap<String,String>();
 	static HashMap<String,String> tempTellPlayers = new HashMap<String,String>();

@@ -92,16 +92,17 @@ public class UCLang {
 			String keylang = properties.getProperty((String) key);
 			Lang.put((String) key, keylang.replace("owner", "leader"));
 		}		
-		
+
+		// Updating the plugin updates the lang file
 		if (Lang.get("_lang.version") != null){
 			int langv = Integer.parseInt(Lang.get("_lang.version").replace(".", ""));
 			int rpv = Integer.parseInt(UltimateChat.plugin.getVersion().get().replace(".", ""));
 			if (langv < rpv || langv == 0){
-				UltimateChat.plugin.getLogger().info("Your lang file is outdated. Probally need strings updates!");
+				UltimateChat.plugin.getLogger().info("Your lang file is outdated. Probably need strings updates!");
 				UltimateChat.plugin.getLogger().info("Lang file version: "+Lang.get("_lang.version"));
 				Lang.put("_lang.version", UltimateChat.plugin.getVersion().get());
 			}
-		}		
+		}
 	}
 	
 	private static void updateLang(){

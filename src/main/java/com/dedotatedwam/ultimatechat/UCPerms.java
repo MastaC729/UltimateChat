@@ -22,7 +22,11 @@ class UCPerms {
 	boolean cmdPerm(CommandSource p, String cmd){
 		return hasPerm(p, "cmd."+cmd);
 	}
-	
+
+	// Methods for checking "channel.{chName}" permission
+
+	// Automatically returns true if the person's in the default channel
+	// Returns false if the person does not have permission to use that channel
 	boolean channelPerm(CommandSource p, UCChannel ch){
 		UCChannel defCh = UCConfig.getInstance().getDefChannel();
 		return defCh.equals(ch) || hasPerm(p, "channel."+ch.getName().toLowerCase());
@@ -32,7 +36,31 @@ class UCPerms {
 		UCChannel defCh = UCConfig.getInstance().getDefChannel();
 		return defCh.getName().equals(ch) || defCh.getAlias().equals(ch) || hasPerm(p, "channel."+ch.toLowerCase());
 	}
-	
+
+	// Methods for checking "channel.{chName}.send" permission
+
+	boolean channelPermSend(CommandSource p, UCChannel ch){
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
+		return defCh.equals(ch) || hasPerm(p, "channel."+ch.getName().toLowerCase()+".send");
+	}
+
+	boolean channelPermSend(CommandSource p, String ch){
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
+		return defCh.getName().equals(ch) || defCh.getAlias().equals(ch) || hasPerm(p, "channel."+ch.toLowerCase()+".send");
+	}
+
+	// Methods for checking "channel.{chName}.receive" permission
+
+	boolean channelPermReceive(CommandSource p, UCChannel ch){
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
+		return defCh.equals(ch) || hasPerm(p, "channel."+ch.getName().toLowerCase()+".receive");
+	}
+
+	boolean channelPermReceive(CommandSource p, String ch){
+		UCChannel defCh = UCConfig.getInstance().getDefChannel();
+		return defCh.getName().equals(ch) || defCh.getAlias().equals(ch) || hasPerm(p, "channel."+ch.toLowerCase()+".receive");
+	}
+
 	boolean hasPerm(CommandSource p, String perm){
 		return (p instanceof ConsoleSource) || p.hasPermission("uchat."+perm) || p.hasPermission("uchat.admin");
 	}

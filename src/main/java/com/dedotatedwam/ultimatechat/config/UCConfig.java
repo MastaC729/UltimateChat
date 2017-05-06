@@ -17,17 +17,16 @@ import java.util.*;
 
 public class UCConfig {
 
-	private static UCConfig instance = new UCConfig();
-
+	private static UCConfig instance = null;
+	private UCConfig() { }
 	public static UCConfig getInstance() {
+		if (instance == null) {
+			instance = new UCConfig();
+		}
 		return instance;
 	}
 
-	private UCConfig() { }
-
-	// TODO make this a singleton class, i.e. make every method static and add a null private constructor
-	// TODO Offload lang stuff to resources
-
+	// List of aliases for channel as key, value is the channel those aliases are associated to
 	private HashMap<List<String>,UCChannel> channels = null;
 
 	private CommentedConfigurationNode config;
@@ -35,6 +34,8 @@ public class UCConfig {
 
 	private CommentedConfigurationNode prots;
 	private ConfigurationLoader<CommentedConfigurationNode> protsManager;
+
+	private boolean ignoreOverride = false;		// This is set by the 'players-can-ignore-channels' node in the config. If true then players can ignore channels with the admin override
 
 	// Loads the config from scratch
 	// Used in multiple scenarios
@@ -48,7 +49,7 @@ public class UCConfig {
 				UltimateChat.getLogger().info("Creating config file...");
 				defConfig.createNewFile();
 			}
-			
+
 			/*--------------------- config.conf ---------------------------*/
 			configManager = HoconConfigurationLoader.builder().setFile(defConfig).build();
 			config = configManager.load();
@@ -67,34 +68,35 @@ public class UCConfig {
 			config.getNode("general","URL-template").setValue(config.getNode("general","URL-template").getString("Click to open &n{url}&r"))
 			.setComment("Template to show when players send links or urls.");
 			config.getNode("general","console-tag").setValue(config.getNode("general","console-tag").getString("&6 {console}&3"))
-			.setComment("Tag to show when sent messagens from console to channels.");
+			.setComment("Tag to show when sent messages are sent from console to channels.");
 			config.getNode("general","remove-from-chat").setValue(config.getNode("general","remove-from-chat").getList(TypeToken.of(String.class), Arrays.asList("[]")))
-			.setComment("Remove this from chat (like empty tags)");
+			.setComment("Remove these entries from chat (like empty tags)");
 			config.getNode("general","channel-cmd-aliases").setValue(config.getNode("general","channel-cmd-aliases").getString("channel, ch"))
-			.setComment("Command and aliases for /channel command.");
+			.setComment("Command aliases for the /channel command.");
 			config.getNode("general","umsg-cmd-aliases").setValue(config.getNode("general","umsg-cmd-aliases").getString("umsg"))
-			.setComment("Aliases to send commands from system to players (without any format, good to send messages from other plugins direct to players).");
-			config.getNode("general","default-channel").setValue(config.getNode("general","default-channel").getString("l"))
-			.setComment("Set the efault channel for new players or when players join on server.");
+			.setComment("Aliases to send commands from system to players without any formatting. This is useful when sending messages from other plugins direct to players.");
+			config.getNode("general","default-channel").setValue(config.getNode("general","default-channel").getString("g"))
+			.setComment("Set the default channel for new players or when players join the server.");
 			config.getNode("general","spy-format").setValue(config.getNode("general","spy-format").getString("&c[Spy] {output}"))
 			.setComment("Chat spy format.");
 			config.getNode("general","default-tag-builder").setValue(config.getNode("general","default-tag-builder").getString("world,ch-tags,prefix,nickname,suffix,message"))
 			.setComment("This is the main tag builder.\n"
-					+ "Change the order of this tags to change how tag is displayed on chat.\n"
-					+ "This tags represent the names of tag in this configuration.");
-
-			config.getNode("tell","enable").setValue(config.getNode("tell","enable").getBoolean(true))
-			.setComment("Enabling tell will unregister other plugins using tell like nucleus, and will use only this tell.");
+					+ "Change the order of the tags to change how each tag is displayed on chat.\n"
+					+ "These tags represent the names of the tags in this configuration.");
+			config.getNode("general","players-can-ignore-channels").setValue(config.getNode("general","players-can-ignore-channels").getBoolean())
+					.setComment("If true then players can ignore channels with the admin override permission node uchat.admin.ignoreoverride.[channel]");
+			config.getNode("tell","enable").setValue(config.getNode("tell","enable").getBoolean(false))
+			.setComment("Enabling tell will unregister other plugins using tell (e.g. nucleus) and will only use this tell.");
 			config.getNode("tell","cmd-aliases").setValue(config.getNode("tell","cmd-aliases").getString("tell,t,w,m,msg,private,priv"))
 			.setComment("Aliases for tell command.");
 			config.getNode("tell","prefix").setValue(config.getNode("tell","prefix").getString("&6[&c{playername} &6-> &c{receivername}&6]: "))
-			.setComment("Prefix of tell messages.");
+			.setComment("Prefix for tell messages.");
 			config.getNode("tell","format").setValue(config.getNode("tell","format").getString("{message}"))
 			.setComment("Suffix (or message) of tell.");
 			config.getNode("tell","hover-messages").setValue(config.getNode("tell","hover-messages").getString(""))
 			.setComment("Hover messages to show on tell messages.");
 
-			config.getNode("broadcast","enable").setValue(config.getNode("broadcast","enable").getBoolean(true))
+			config.getNode("broadcast","enable").setValue(config.getNode("broadcast","enable").getBoolean(false))
 			.setComment("Enable broadcast. Enabling this will unregister any other broadcasts commands using the same aliases.");
 			config.getNode("broadcast","on-hover").setValue(config.getNode("broadcast","on-hover").getString("hover:"))
 			.setComment("Tag to use on broadcast message to set a hover message.");
@@ -105,35 +107,40 @@ public class UCConfig {
 			config.getNode("broadcast","aliases").setValue(config.getNode("broadcast","aliases").getString("broadcast,broad,announce,say,action,all,anunciar,todos"))
 			.setComment("Aliases to use for broadcast.");
 
-			config.getNode("hooks").setComment("Enable hook with other plugins here. Only enable if installed.");
+			config.getNode("hooks").setComment("Enable plugin hooks here. Only enable if installed.");
 			config.getNode("hooks","MCClans","enable").setValue(config.getNode("hooks","MCClans","enable").getBoolean(false));
 
 			config.getNode("tags").setComment("This is where you will create as many tags you want.\n"
-					+ "You can use the tag \"custon-tag\" as base to create your own tags.\n"
-					+ "When finish, get the name of your tag and put on \"general.default-tag-build\" \n"
-					+ "or on channel builder on \"channels\" folder.");
+					+ "You can use the tag \"m-tag\" as the basis to create your own tags.\n"
+					+ "When finished, get the name of your tag and put on \"general.default-tag-build\" to apply it to the channels you wish to use it with.");
 			if (!config.getNode("tags").hasMapChildren()){
-				config.getNode("tags","prefix","format").setValue("{option_prefix}");
-				config.getNode("tags","prefix","hover-messages").setValue(Arrays.asList("&3Rank: &f{option_display_name}"));
+				config.getNode("tags","prefix_group","format").setValue("{option_prefix}");
+				config.getNode("tags","prefix_group","hover-messages").setValue(Arrays.asList("&3Rank: &f{option_display_name}"));
+
+				config.getNode("tags","prefix_user","format").setValue("{user_prefix}");
 
 				config.getNode("tags","nickname","format").setValue("{nickname}");
 				config.getNode("tags","nickname","hover-messages").setValue(Arrays.asList("&3Player: &f{playername}","&3Money: &7{balance}"));
 
 				config.getNode("tags","playername","format").setValue("{playername}");
-				config.getNode("tags","nickname","hover-messages").setValue(Arrays.asList("&3Player: &f{playername}","&3Money: &7{balance}"));
+				config.getNode("tags","playername","hover-messages").setValue(Arrays.asList("&3Player: &f{playername}","&3Money: &7{balance}"));
 
 				config.getNode("tags","suffix","format").setValue("{option_suffix}");
+
+				config.getNode("tags","suffix_user","format").setValue("{user_suffix}");
 
 				config.getNode("tags","world","format").setValue("&7[{world}]&r");
 				config.getNode("tags","world","hover-messages").setValue(Arrays.asList("&7Sent from world {world}"));
 
-				config.getNode("tags","message","format").setValue("{message}");
+				config.getNode("tags","message","format").setValue("{ch-color}{message}");
 
 				config.getNode("tags","ch-tags","format").setValue("{ch-color}[{ch-alias}]&r");
 				config.getNode("tags","ch-tags","click-cmd").setValue("ch {ch-alias}");
 				config.getNode("tags","ch-tags","hover-messages").setValue(Arrays.asList("&3Channel name: {ch-color}{ch-name}","&bClick to join this channel"));
 
-				config.getNode("tags","admin-chat","format").setValue("&b[&r{playername}&b]&r: &b");
+				config.getNode("tags","admin-chat","format").setValue("&a[Admin]&r");
+				config.getNode("tags","admin-chat","click-cmd").setValue("ch {ch-alias}");
+				config.getNode("tags","admin-chat","hover-messages").setValue(Arrays.asList("&3Channel name: {ch-color}{ch-name}","&bClick to join this channel"));
 
 				config.getNode("tags","custom-tag","format").setValue("&7[&2MyTag&7]");
 				config.getNode("tags","custom-tag","click-cmd").setValue("");
@@ -145,13 +152,13 @@ public class UCConfig {
 			
 			/*------------------------ add new configs -------------------------*/
 			int update = 0;
-			if (config.getNode("_config-version").getDouble() < 1.1){
-				config.getNode("_config-version").setValue(1.1);
+			if (config.getNode("_config-version").getDouble() < 1.3){	//TODO Get this to work with the plugin version and ask the console if it would be OK to overwrite the configs
+				config.getNode("_config-version").setValue(1.3);
 
-				config.getNode("tags","vannila-chat").setComment("This is the default vanilla chat format.\n"
+				config.getNode("tags","vanilla-chat").setComment("This is the default vanilla chat format.\n"
 						+ "Add this tag name to the default-builder if you want to use \n"
 						+ "vanilla or if other plugins have modificed the tags like nickname of Nucleus.");
-				config.getNode("tags","vannila-chat","format").setValue("{chat_header}{chat_body}");
+				config.getNode("tags","vanilla-chat","format").setValue("{chat_header}{chat_body}");
 				update++;
 			}
 
@@ -164,24 +171,26 @@ public class UCConfig {
 			protsManager = HoconConfigurationLoader.builder().setFile(defProt).build();
 			prots = protsManager.load();
 
+			//TODO add comments here to provide descriptions w/o checking the documentation
+
 			prots.getNode("chat-protection","chat-enhancement","enable").setValue(prots.getNode("chat-protection","chat-enhancement","enable").getBoolean(true));
 			prots.getNode("chat-protection","chat-enhancement","end-with-dot").setValue(prots.getNode("chat-protection","chat-enhancement","end-with-dot").getBoolean(true));
-			prots.getNode("chat-protection","chat-enhancement","minimum-lenght").setValue(prots.getNode("chat-protection","chat-enhancement","minimum-lenght").getInt(3));
+			prots.getNode("chat-protection","chat-enhancement","minimum-length").setValue(prots.getNode("chat-protection","chat-enhancement","minimum-lenght").getInt(3));
 
 			prots.getNode("chat-protection","anti-flood","enable").setValue(prots.getNode("chat-protection","anti-flood","enable").getBoolean(true));
 			prots.getNode("chat-protection","anti-flood","whitelist-flood-characs")
 			.setValue(prots.getNode("chat-protection","anti-flood","whitelist-flood-characs").getList(TypeToken.of(String.class), Arrays.asList("k")));
 
 			prots.getNode("chat-protection","caps-filter","enable").setValue(prots.getNode("chat-protection","caps-filter","enable").getBoolean(true));
-			prots.getNode("chat-protection","caps-filter","minimum-lenght").setValue(prots.getNode("chat-protection","caps-filter","minimum-lenght").getInt(3));
+			prots.getNode("chat-protection","caps-filter","minimum-length").setValue(prots.getNode("chat-protection","caps-filter","minimum-lenght").getInt(3));
 
 			prots.getNode("chat-protection","antispam","enable").setValue(prots.getNode("chat-protection","antispam","enable").getBoolean(false));
 			prots.getNode("chat-protection","antispam","time-beteween-messages").setValue(prots.getNode("chat-protection","antispam","time-beteween-messages").getInt(1));
 			prots.getNode("chat-protection","antispam","count-of-same-message").setValue(prots.getNode("chat-protection","antispam","count-of-same-message").getInt(5));
 			prots.getNode("chat-protection","antispam","time-beteween-same-messages").setValue(prots.getNode("chat-protection","antispam","time-beteween-same-messages").getInt(10));
-			prots.getNode("chat-protection","antispam","colldown-msg").setValue(prots.getNode("chat-protection","antispam","colldown-msg").getString("&6Slow down your messages!"));
+			prots.getNode("chat-protection","antispam","cooldown-msg").setValue(prots.getNode("chat-protection","antispam","colldown-msg").getString("&6Slow down your messages!"));
 			prots.getNode("chat-protection","antispam","wait-message").setValue(prots.getNode("chat-protection","antispam","wait-message").getString("&cWait to send the same message again!"));
-			prots.getNode("chat-protection","antispam","cmd-action").setValue(prots.getNode("chat-protection","antispam","cmd-action").getString("kick {player} Relax, slow down your messages frequency ;)"));
+			prots.getNode("chat-protection","antispam","cmd-action").setValue(prots.getNode("chat-protection","antispam","cmd-action").getString("kick {player} Woah there, too spicy! ;)"));
 
 			prots.getNode("chat-protection","censor","enable").setValue(prots.getNode("chat-protection","censor","enable").getBoolean(true));
 			prots.getNode("chat-protection","censor","replace-by-symbol").setValue(prots.getNode("chat-protection","censor","replace-by-symbol").getBoolean(true));
@@ -202,15 +211,15 @@ public class UCConfig {
 			prots.getNode("chat-protection","anti-ip","whitelist-words")
 			.setValue(prots.getNode("chat-protection","anti-ip","whitelist-words").getList(TypeToken.of(String.class), Arrays.asList("www.myserver.com","prntscr.com","gyazo.com","www.youtube.com")));
 			prots.getNode("chat-protection","anti-ip","cancel-or-replace").setValue(prots.getNode("chat-protection","anti-ip","cancel-or-replace").getString("cancel"));
-			prots.getNode("chat-protection","anti-ip","cancel-msg").setValue(prots.getNode("chat-protection","anti-ip","cancel-msg").getString("&cYou cant send websites or ips on chat"));
+			prots.getNode("chat-protection","anti-ip","cancel-msg").setValue(prots.getNode("chat-protection","anti-ip","cancel-msg").getString("&cYou cant send websites or ips in chat."));
 			prots.getNode("chat-protection","anti-ip","replace-by-word").setValue(prots.getNode("chat-protection","anti-ip","replace-by-word").getString("-removed-"));
 			prots.getNode("chat-protection","anti-ip","punish","enable").setValue(prots.getNode("chat-protection","anti-ip","punish","enable").getBoolean(false));
 			prots.getNode("chat-protection","anti-ip","punish","max-attempts").setValue(prots.getNode("chat-protection","anti-ip","punish","max-attempts").getInt(3));
 			prots.getNode("chat-protection","anti-ip","punish","mute-or-cmd").setValue(prots.getNode("chat-protection","anti-ip","punish","mute-or-cmd").getString("mute"));
 			prots.getNode("chat-protection","anti-ip","punish","mute-duration").setValue(prots.getNode("chat-protection","anti-ip","punish","mute-duration").getInt(1));
-			prots.getNode("chat-protection","anti-ip","punish","mute-msg").setValue(prots.getNode("chat-protection","anti-ip","punish","mute-msg").getString("&cYou have been muted for send IPs or URLs on chat!"));
+			prots.getNode("chat-protection","anti-ip","punish","mute-msg").setValue(prots.getNode("chat-protection","anti-ip","punish","mute-msg").getString("&cYou have been muted for sending IPs or URLs in chat!"));
 			prots.getNode("chat-protection","anti-ip","punish","unmute-msg").setValue(prots.getNode("chat-protection","anti-ip","punish","unmute-msg").getString("&aYou can chat again!"));
-			prots.getNode("chat-protection","anti-ip","punish","cmd-punish").setValue(prots.getNode("chat-protection","anti-ip","punish","cmd-punish").getString("tempban {player} 10m &cYou have been warned about send links or IPs on chat!"));
+			prots.getNode("chat-protection","anti-ip","punish","cmd-punish").setValue(prots.getNode("chat-protection","anti-ip","punish","cmd-punish").getString("tempban {player} 10m &cYou have been warned about sending links or IPs in chat!"));
 
 		} catch (IOException | ObjectMappingException e) {
 			e.printStackTrace();
@@ -237,35 +246,55 @@ public class UCConfig {
             CommentedConfigurationNode channel;
         	ConfigurationLoader<CommentedConfigurationNode> channelManager;
 
-    		for (File file:listOfFiles){
+    		for (File file:listOfFiles) {
 
-    			if (file.getName().endsWith(".conf")){
-    				channelManager = HoconConfigurationLoader.builder().setFile(file).build();
-    				channel = channelManager.load();
+				if (file.getName().endsWith(".conf")) {
 
-					try {
-						UCChannel ch = new UCChannel(channel.getNode("name").getString(),
-								channel.getNode("alias").getString(),
-								channel.getNode("across-worlds").getBoolean(true),
-								channel.getNode("distance").getInt(0),
-								channel.getNode("color").getString("&b"),
-								channel.getNode("tag-builder").getString(config.getNode("general","default-tag-builder").getString()),
-								channel.getNode("need-focus").getBoolean(false),
-								channel.getNode("receivers-message").getBoolean(true),
-								channel.getNode("cost").getDouble(0.0),
-								channel.getNode("bungee").getBoolean(false),
-								channel.getNode("use-this-builder").getBoolean(false),
-								channel.getNode("channelAlias","enable").getBoolean(false),
-								channel.getNode("channelAlias","sendAs").getString("player"),
-								channel.getNode("channelAlias","cmd").getString(""),
-								channel.getNode("available-worlds").getList(TypeToken.of(String.class), new ArrayList<String>()),
-								channel.getNode("canLock").getBoolean(true));
-						addChannel(ch);
-					} catch (ObjectMappingException e1) {
-						e1.printStackTrace();
+					//Save all channel configuration files in all lower case name, because Pl doesn't understand the idea of case sensitivity in file names being an issue
+					if (!file.getName().equals(file.getName().toLowerCase())) {
+						String fileOld = file.getName();
+						String fileNewName = file.getParent() + File.separator + file.getName().toLowerCase();
+						boolean success = file.renameTo(new File(fileNewName));
+						if (success) {
+							UltimateChat.getLogger().info("Existing channel configuration file of name " + fileOld + " renamed to " + file.getName());
+						}
 					}
-    			}
-    		}
+
+					channelManager = HoconConfigurationLoader.builder().setFile(file).build();
+					channel = channelManager.load();
+
+					// Don't add a channel if it's disabled, e.g. if a custom channel does the same thing as a default, but with a different file name
+					if (channel.getNode("enabled").getBoolean()){
+						try {
+							UCChannel ch = new UCChannel(channel.getNode("name").getString(),
+									channel.getNode("alias").getString(),
+									channel.getNode("across-worlds").getBoolean(true),
+									channel.getNode("distance").getInt(0),
+									channel.getNode("color").getString("&b"),
+									channel.getNode("tag-builder").getString(config.getNode("general", "default-tag-builder").getString()),
+									channel.getNode("need-focus").getBoolean(false),
+									channel.getNode("receivers-message").getBoolean(false),
+									channel.getNode("cost").getDouble(0.0),
+									channel.getNode("bungee").getBoolean(false),
+									channel.getNode("use-this-builder").getBoolean(false),
+									channel.getNode("channelAlias", "enable").getBoolean(false),
+									channel.getNode("channelAlias", "sendAs").getString("player"),
+									channel.getNode("channelAlias", "cmd").getString(""),
+									channel.getNode("available-worlds").getList(TypeToken.of(String.class), new ArrayList<String>()),
+									channel.getNode("canLock").getBoolean(true),
+									channel.getNode("override-tag-builder").getBoolean(false),
+									channel.getNode("custom-prefix").getString(""),
+									channel.getNode("leaveable").getBoolean(true));
+							addChannel(ch);
+						} catch (ObjectMappingException e1) {
+							e1.printStackTrace();
+						}
+					}
+				}
+			}
+    		//---------------------------- Load Ignore Overrider Setting -----------------------------//
+
+			ignoreOverride = config.getNode("general","players-can-ignore-channels").getBoolean();
 
     		//-------------------------------- Change config Header ----------------------------------//
 
@@ -277,9 +306,9 @@ public class UCConfig {
     					+ "We recommend you to use NotePad++ to edit this file and avoid TAB errors!\n"
     					+ "------------------------------------------------------------------------\n"
     					+ "\n"
-    					+ "Tags is where you can customize what will show on chat, on hover or on click on tag.\n"
-    					+ "To add a tag, you can copy an existent and change the name and the texts.\n"
-    					+ "After add and customize your tag, put the tag name on 'general > default-tag-builder'.\n"
+    					+ "Tags is where you can customize what will show on chat, on hover or when you click on the tag.\n"
+    					+ "To add a tag, you can copy an existent tag and change the information to your needs.\n"
+    					+ "After adding and customizing your new tag, you can either put it on the default tag or on your channel's tag builder.\n"
     					+ "------------------------------------------------------------------------\n"
     					+ "###### Do not rename the tags 'playername', 'nickname' and 'message' ########\n"
     					+ "############ or the plugin will not parse the tag correctly! ################\n"
@@ -296,11 +325,13 @@ public class UCConfig {
     					+ " - {balance}: Get the sender money;\n"
     					+ "\n"
     					+ "Permissions:\n"
+						+ " - {user_prefix}: Get the user-specific prefix (if set);\n"
+						+ " - {user_suffix}: Get the user-specific suffix (if set);\n"
     					+ " - {option_group}: Get the group name;\n"
-    					+ " - {option_prefix}: Get the prefix of group (if set);\n"
-    					+ " - {option_suffix}: Get the suffix of group (if set);\n"
-    					+ " - {option_display_name}: Get the custom name of group (if set);\n"
-    					+ " - {option_<key option>}: Get some custom key option from your group in permissions like {option_home-count} to get home count from Nucleus;\n"
+    					+ " - {option_prefix}: Get the prefix of the player's group (if set);\n"
+    					+ " - {option_suffix}: Get the suffix of the player's group (if set);\n"
+    					+ " - {option_display_name}: Get the custom name of the group (if set);\n"
+    					+ " - {option_<key option>}: Get some custom key options from your group in permissions, such as {option_home-count} to get the home count from Nucleus;\n"
     					+ "\n"
     					+ "Vanilla Chat:\n"
     					+ " - {chat_header}: Get the header of chat;\n"
@@ -409,6 +440,7 @@ public class UCConfig {
 		channelManager = HoconConfigurationLoader.builder().setFile(defch).build();
 		chFile = channelManager.load();
 
+		chFile.getNode("enabled").setValue(true);
 		chFile.getNode("across-worlds").setComment(""
 				+ "###################################################\n"
 				+ "############## Channel Configuration ##############\n"
@@ -416,25 +448,34 @@ public class UCConfig {
 				+ "\n"
 				+ "This is the channel configuration.\n"
 				+ "You can change and copy this file to create as many channels you want.\n"
-				+ "This is the default options:\n"
+				+ "(The format of this key is 'setting: default value - description')\n"
 				+ "\n"
-				+ "name: Global - The name of channel.\n"
-				+ "alias: g - The alias to use the channel\n"
-				+ "across-worlds: true - Send messages of this channel to all worlds?\n"
-				+ "distance: 0 - If across worlds is false, distance to receive this messages.\n"
-				+ "color: &b - The color of channel\n"
+				+ "enabled: true - Set this to false to disable loading this channel config"
+				+ "\n"
+				+ "name: Global - The name of the channel.\n"
+				+ "alias: g - An alias for the channel\n"
+				+ "across-worlds: true - Message is sent to all worlds. Setting this to false will only send to messages in the sender's current world.\n"
+				+ "  Setting this to false can make the channel local, in conjunction with setting a radius with the distance setting.\n"
+				+ "distance: 0 - If across-worlds is false, this sets the distance to receive messages. A 0 radius means infinite distance, i.e. anywhere on the map\n"
+				+ "color: &b - The color of channel's message text.\n"
 				+ "tag-builder: ch-tags,world,clan-tag,marry-tag,group-prefix,nickname,group-suffix,message - Tags of this channel\n"
-				+ "need-focus: false - Player can use the alias or need to use '/ch g' to use this channel?\n"
-				+ "canLock: true - Change if the player can use /<channel> to lock on channel."
-				+ "receivers-message: true - Send chat messages like if no player near to receive the message?\n"
-				+ "cost: 0.0 - Cost to player use this channel.\n"
-				+ "use-this-builder: false - Use this tag builder or use the 'config.yml' tag-builder?\n"
+				+ "need-focus: false - Players must be focused on that channel in order to receive messages from it.\n"
+				+ "canLock: true - When set to false, players cannot use /<channel> to send a message to that channel. (CURRENTLY BROKEN)\n"	//TODO Fix this setting
+				+ "receivers-message: false - Set this to true if, when no one is near the sender OR in the same world as the sender, you don't want the message to be sent.\n"
+				+ "cost: 0.0 - Cost to use this channel.\n"
+				+ "use-this-builder: false - Use the tag builder specified here when set to true. If false, it uses the default tag builder in the main config file.\n"
 				+ "\n"
-				+ "channelAlias - Use this channel as a command alias.\n"
-				+ "  enable: true - Enable this execute a command alias?\n"
-				+ "  sendAs: player - Send the command alias as 'player' or 'console'?\n"
-				+ "  cmd: '' - Command to send on every message send by this channel.\n"
-				+ "available-worlds - Worlds and only this world where this chat can be used and messages sent/received.\n");
+				+ "channelAlias - Provides settings for the execution of commands when a message is sent on this channel.\n"
+				+ "  enable: true - Enables the command execution.\n"
+				+ "  sendAs: player - Set this to 'player' for the command to be sent by the player who sent the message,\n"
+				+ "    or set this to 'console' for the command to be sent by the console."
+				+ "  cmd: '' - Command to send every time this channel sends a message.\n"
+				+ "available-worlds: [] - Worlds where this channel can be used and messages sent/received. If empty, all worlds are available.\n"
+				+ "override-tag-builder: false - When set to true, overrides the tag builder, using the customPrefix setting instead.(DEVELOPMENT ONLY - DOES NOT WORK YET!!!)\n"
+				+ "customPrefix: '' - When override-tag-builder is set to true, this setting is used to build the tags before the message.(DEVELOPMENT ONLY - DOES NOT WORK YET!!!)\n"
+				+ "  Note: Color codes and formatting tags (ex. &4, &k) can be used here. Just remember to surround the text in double quotes.\n"
+				+ "  Example of valid prefix: &r[&5Global&r] \n"
+				+ "leaveable: true - Whether or not players can ignore the channel by doing /chat ignore [channel]\n");						// Offloaded to a storage class
 		chFile.getNode("name").setValue(ch.getName().toLowerCase());		// There is no point in case-sensitivity
 		chFile.getNode("alias").setValue(ch.getAlias().toLowerCase());
 		chFile.getNode("across-worlds").setValue(ch.crossWorlds());
@@ -451,6 +492,9 @@ public class UCConfig {
 		chFile.getNode("channelAlias","sendAs").setValue(ch.getAliasSender());
 		chFile.getNode("channelAlias","cmd").setValue(ch.getAliasCmd());
 		chFile.getNode("available-worlds").setValue(ch.availableWorlds());
+		chFile.getNode("override-tag-builder").setValue(ch.canOverrideTagBuilder());
+		chFile.getNode("custom-prefix").setValue(ch.getCustomPrefix());
+		chFile.getNode("leaveable").setValue(ch.isLeaveable());
 		channelManager.save(chFile);
 		channels.put(Arrays.asList(ch.getName(), ch.getAlias().toLowerCase()), ch);
 	}
@@ -577,6 +621,8 @@ public class UCConfig {
 	
 	public Text getURLTemplate() {
 		return UCUtil.toText(prots.getNode("general","URL-template").getString());
-	}	
+	}
+
+	public boolean isChannelIgnoringEnabled() { return ignoreOverride;}
 }
    

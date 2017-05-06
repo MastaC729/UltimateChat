@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.command.source.ConsoleSource;
-import org.spongepowered.api.data.key.Keys;
 import org.spongepowered.api.effect.sound.SoundType;
 import org.spongepowered.api.entity.Entity;
 import org.spongepowered.api.entity.living.player.Player;
@@ -83,8 +82,14 @@ class UCMessages {
 				UCLang.sendMessage(sender, UCLang.get("channel.notavailable").replace("{channel}", ch.getName()));
 				return null;
 			}
-			
-			if (!UltimateChat.getPerms().channelPerm(sender, ch)){
+
+			// If the sender doesn't have the parent node
+			if (!UltimateChat.getPerms().channelPerm(sender, ch)) {
+				// And if they don't have the sender node
+				if (!UltimateChat.getPerms().channelPermSend(sender, ch)){
+					UCLang.sendMessage(sender, UCLang.get("channel.nopermission.send").replace("{channel}", ch.getName()));
+					return null;
+				}
 				UCLang.sendMessage(sender, UCLang.get("channel.nopermission").replace("{channel}", ch.getName()));
 				return null;
 			}
@@ -105,7 +110,7 @@ class UCMessages {
 			
 			if (ch.getDistance() > 0 && sender instanceof Player){			
 				for (Entity ent:((Player)sender).getNearbyEntities(ch.getDistance())){
-					if (ent instanceof Player && UltimateChat.getPerms().channelPerm((Player)ent, ch)){
+					if (ent instanceof Player && (UltimateChat.getPerms().channelPermSend((Player)ent, ch) || UltimateChat.getPerms().channelPerm((Player)ent, ch))){
 						Player p = (Player) ent;				
 						if (((Player)sender).equals(p)){
 							continue;
@@ -119,7 +124,7 @@ class UCMessages {
 						if (!((Player)sender).canSee(p)){
 							vanish++;
 						}
-						if ((ch.neeFocus() && UltimateChat.pChannels.get(((Player)ent).getName()).equals(ch.getAlias())) || !ch.neeFocus()){
+						if (!ch.neeFocus() || UltimateChat.pChannels.get(((Player) ent).getName()).equals(ch.getAlias())){
 							toConsole = sendMessage(sender,(Player)ent, evmsg, ch, false);
 							receivers.add((Player)ent);
 							msgCh.transformMessage(sender, (Player)ent, buildMessage(toConsole), ChatTypes.SYSTEM);
@@ -142,8 +147,9 @@ class UCMessages {
 						vanish++;
 					} else {
 						noWorldReceived++;
-					}					
-					if ((ch.neeFocus() && UltimateChat.pChannels.get(receiver.getName()).equals(ch.getAlias())) || !ch.neeFocus()){
+					}
+					// If you don't need to be focused on the channel, and the receiver is in that channel
+					if (!ch.neeFocus() || UltimateChat.pChannels.get(receiver.getName()).equals(ch.getAlias())){
 						toConsole = sendMessage(sender, receiver, evmsg, ch, false);
 						receivers.add(receiver);
 						msgCh.transformMessage(sender, receiver, buildMessage(toConsole), ChatTypes.SYSTEM);
@@ -160,13 +166,11 @@ class UCMessages {
 					receiver.sendMessage(UCUtil.toText(spyformat));
 				}
 			}
-			
-			
+
 			if (!(sender instanceof ConsoleSource)){
 				msgCh.transformMessage(sender, Sponge.getServer().getConsole(), buildMessage(toConsole), ChatTypes.SYSTEM);
 			}			
-			
-			
+
 			if (ch.getDistance() == 0 && noWorldReceived <= 0){
 				if (ch.getReceiversMsg()){
 					UCLang.sendMessage(sender, "channel.noplayer.world");
@@ -214,13 +218,16 @@ class UCMessages {
 		return build0.build();
 	}
 	private static String composeColor(CommandSource sender, String evmsg){
-		if (sender instanceof Player){			
+		if (sender instanceof Player){
+			// If they don't have permission to use color in their message, delete those color codes
 			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color")){
 				evmsg = evmsg.replaceAll("(?i)&([a-f0-9r])", "");
 			}
+			// If they don't have permission to use format codes in their message, delete those codes
 			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color.formats")){
 				evmsg = evmsg.replaceAll("(?i)&([l-o])", "");
 			}
+			// If they don't have permission to use &k in their message, delete those codes
 			if (!UltimateChat.getPerms().hasPerm((Player)sender, "chat.color.magic")){
 				evmsg = evmsg.replaceAll("(?i)&([k])", "");
 			}
@@ -255,9 +262,18 @@ class UCMessages {
 	}
 	
 	private static Builder[] sendMessage(CommandSource sender, CommandSource receiver, String msg, UCChannel ch, boolean isSpy){
+
 		Builder formatter = Text.builder();
 		Builder playername = Text.builder();
 		Builder message = Text.builder();
+
+		// If the channel is set to override the tag builder, read from customPrefix and bypass the builder
+		if (ch.canOverrideTagBuilder()) {
+			Builder prefixCustom = Text.builder().append(Text.of(TextSerializers.FORMATTING_CODE.deserialize(ch.getCustomPrefix())));
+			message.append(Text.of(msg)).color(UCUtil.toText(ch.getColor()).getColor());
+			UltimateChat.getLogger().debug("Message builder looks like the following: " + prefixCustom + " " + message);
+			return new Builder[]{prefixCustom, message};
+		}
 				
 		if (!ch.getName().equals("tell")){
 			String[] defaultBuilder = UCConfig.getInstance().getDefBuilder();
@@ -429,32 +445,41 @@ class UCMessages {
 		return msg;
 	}
 	
-	static String formatTags(String tag, String text, Object cmdSender, Object receiver, String msg, UCChannel ch){	
-		if (receiver instanceof CommandSource && tag.equals("message")){			
-			text = text.replace("{message}", mention(cmdSender, (CommandSource)receiver, msg));
+	static String formatTags(String tag, String text, Object cmdSender, Object receiver, String msg, UCChannel ch) {
+		if (receiver instanceof CommandSource && tag.equals("message")) {
+			text = text.replace("{message}", mention(cmdSender, (CommandSource) receiver, msg));
 		} else {
 			text = text.replace("{message}", msg);
 		}
-		
+
 		text = text.replace("{ch-color}", ch.getColor())
-		.replace("{ch-name}", ch.getName())
-		.replace("{ch-alias}", ch.getAlias());		
-		if (cmdSender instanceof CommandSource){
-			text = text.replace("{playername}", ((CommandSource)cmdSender).getName())
-					.replace("{receivername}", ((CommandSource)receiver).getName());
+				.replace("{ch-name}", ch.getName())
+				.replace("{ch-alias}", ch.getAlias());
+		if (cmdSender instanceof CommandSource) {
+			text = text.replace("{playername}", ((CommandSource) cmdSender).getName())
+					.replace("{receivername}", ((CommandSource) receiver).getName());
 		} else {
-			text = text.replace("{playername}", (String)cmdSender)
-					.replace("{receivername}", (String)receiver);
+			text = text.replace("{playername}", (String) cmdSender)
+					.replace("{receivername}", (String) receiver);
 		}
-		for (String repl:registeredReplacers.keySet()){
-			if (registeredReplacers.get(repl).equals(repl)){
+		for (String repl : registeredReplacers.keySet()) {
+			if (registeredReplacers.get(repl).equals(repl)) {
 				text = text.replace(repl, "");
 				continue;
 			}
-			text = text.replace(repl, registeredReplacers.get(repl));			
-		}	
-		
+			text = text.replace(repl, registeredReplacers.get(repl));
+		}
+
+		if (defFormat[0] != null) {
+			//TODO Make this less hacky
+			// Nucleus nickname processing
+			String rawNickName;
+			rawNickName = defFormat[0].replaceAll("\\s", "").replaceAll("(\\[{1}.{1,20}\\])", "").replace(":", "");
+			text = text.replace("{nickname}", rawNickName);
+		}
+
 		if (defFormat.length == 3){
+			assert defFormat[0] != null;	// Just to calm down Intellij
 			text = text.replace("{chat_header}", defFormat[0])
 					.replace("{chat_body}", defFormat[1])
 					.replace("{chat_footer}", defFormat[2])
@@ -463,11 +488,12 @@ class UCMessages {
 				
 		if (cmdSender instanceof Player){
 			Player sender = (Player)cmdSender;
-			
-			if (sender.get(Keys.DISPLAY_NAME).isPresent()){
+
+			// TODO Find out if this actually works, because it seems to do nothing
+			/*if (sender.get(Keys.DISPLAY_NAME).isPresent()){
 				text = text.replace("{nickname}", sender.get(Keys.DISPLAY_NAME).get().toPlain());
-			}				
-			
+			}*/
+
 			text = text.replace("{world}", sender.getWorld().getName());
 			
 			if (UltimateChat.getEco() != null){
@@ -492,8 +518,17 @@ class UCMessages {
 				} else {
 					text = text.replace("{option_display_name}", sub.getIdentifier());
 				}
-			}			
-						
+			}
+
+			// User prefix
+			if (sender.getOption("prefix").isPresent()) {
+				text = text.replace("{user_prefix}", sender.getOption("prefix").get());
+			}
+			// User suffix
+			if (sender.getOption("suffix").isPresent()) {
+				text = text.replace("{user_suffix}", sender.getOption("suffix").get());
+			}
+
 			if (UCConfig.getInstance().getBool("hooks","MCClans","enable")){
 				Optional<ClanService> clanServiceOpt = Sponge.getServiceManager().provide(ClanService.class);
                 if (clanServiceOpt.isPresent()) {
