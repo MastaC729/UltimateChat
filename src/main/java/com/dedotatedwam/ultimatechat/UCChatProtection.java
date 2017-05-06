@@ -48,9 +48,9 @@ class UCChatProtection {
 							chatSpam.remove(p);
 						}						
 					}						
-				},UCConfig.getInstance().getProtInt("chat-protection","antispam","time-beteween-messages"), TimeUnit.SECONDS);
+				},UCConfig.getInstance().getProtInt("chat-protection","antispam","time-between-messages"), TimeUnit.SECONDS);
 			} else if (!chatSpam.get(p).equalsIgnoreCase(msg)){				
-				p.sendMessage(UCConfig.getInstance().getProtMsg("chat-protection","antispam","colldown-msg"));
+				p.sendMessage(UCConfig.getInstance().getProtMsg("chat-protection","antispam","cooldown-msg"));
 				return null;
 			}
 			
@@ -64,7 +64,7 @@ class UCChatProtection {
 							msgSpam.remove(nmsg);
 						}						
 					}						
-					},UCConfig.getInstance().getProtInt("chat-protection","antispam","time-beteween-same-messages"), TimeUnit.SECONDS);
+					},UCConfig.getInstance().getProtInt("chat-protection","antispam","time-between-same-messages"), TimeUnit.SECONDS);
 			} else {
 				msgSpam.put(msg, msgSpam.get(msg)+1);				
 				if (msgSpam.get(msg) >= UCConfig.getInstance().getProtInt("chat-protection","antispam","count-of-same-message")){
@@ -165,8 +165,8 @@ class UCChatProtection {
 		
 		//capitalization verify
 		if (UCConfig.getInstance().getProtBool("chat-protection","chat-enhancement","enable") && !p.hasPermission("uchat.bypass-enhancement")){
-			int lenght = UCConfig.getInstance().getProtInt("chat-protection","chat-enhancement","minimum-lenght");
-			if (!Pattern.compile(regexIP).matcher(msg).find() && !Pattern.compile(regexUrl).matcher(msg).find() && msg.length() > lenght){
+			int length = UCConfig.getInstance().getProtInt("chat-protection","chat-enhancement","minimum-length");
+			if (!Pattern.compile(regexIP).matcher(msg).find() && !Pattern.compile(regexUrl).matcher(msg).find() && msg.length() > length){
 				msg = msg.replaceAll("([.!?])\\1+", "$1").replaceAll(" +", " ").substring(0, 1).toUpperCase()+msg.substring(1);
 				if (UCConfig.getInstance().getProtBool("chat-protection","chat-enhancement","end-with-dot") && !msg.endsWith("?") && !msg.endsWith("!") && !msg.endsWith(".") && msg.split(" ").length > 2){
 					msg = msg+".";
@@ -176,9 +176,9 @@ class UCChatProtection {
 		
 		//anti-caps
 		if (UCConfig.getInstance().getProtBool("chat-protection","caps-filter","enable") && !p.hasPermission("uchat.bypass-enhancement")){
-			int lenght = UCConfig.getInstance().getProtInt("chat-protection","caps-filter","minimum-lenght");
+			int length = UCConfig.getInstance().getProtInt("chat-protection","caps-filter","minimum-length");
 			int msgUppers = msg.replaceAll("\\p{P}", "").replaceAll("[a-z ]+", "").length();
-			if (!Pattern.compile(regexIP).matcher(msg).find() && !Pattern.compile(regexUrl).matcher(msg).find() && msgUppers >= lenght){
+			if (!Pattern.compile(regexIP).matcher(msg).find() && !Pattern.compile(regexUrl).matcher(msg).find() && msgUppers >= length){
 				msg = msg.substring(0, 1).toUpperCase()+msg.substring(1).toLowerCase();
 			}
 		}

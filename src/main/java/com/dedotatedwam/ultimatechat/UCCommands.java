@@ -422,7 +422,7 @@ public class UCCommands {
 				}}).build();
 		
 		CommandSpec help = CommandSpec.builder()
-				.description(Text.of("Se help about commands."))
+				.description(Text.of("Prints out information about this plugin's commands and the user's available channels."))
 				.executor((src,args) -> {{
 					sendHelp(src);
 		    		return CommandResult.success();	

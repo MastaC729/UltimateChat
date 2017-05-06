@@ -300,7 +300,7 @@ class UCMessages {
 				List<String> hideWorlds = UCConfig.getInstance().getStringList("tags",tag,"hide-in-worlds");
 				
 				//check perm
-				if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)){
+				if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)){		//TODO make this permission node uchat.tag.[tag_name]
 					continue;
 				}
 				

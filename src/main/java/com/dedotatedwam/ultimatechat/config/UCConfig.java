@@ -79,7 +79,7 @@ public class UCConfig {
 			.setComment("Set the default channel for new players or when players join the server.");
 			config.getNode("general","spy-format").setValue(config.getNode("general","spy-format").getString("&c[Spy] {output}"))
 			.setComment("Chat spy format.");
-			config.getNode("general","default-tag-builder").setValue(config.getNode("general","default-tag-builder").getString("world,ch-tags,prefix,nickname,suffix,message"))
+			config.getNode("general","default-tag-builder").setValue(config.getNode("general","default-tag-builder").getString("world,ch-tags,prefix_group,nickname,suffix_group,message"))
 			.setComment("This is the main tag builder.\n"
 					+ "Change the order of the tags to change how each tag is displayed on chat.\n"
 					+ "These tags represent the names of the tags in this configuration.");
@@ -175,20 +175,20 @@ public class UCConfig {
 
 			prots.getNode("chat-protection","chat-enhancement","enable").setValue(prots.getNode("chat-protection","chat-enhancement","enable").getBoolean(true));
 			prots.getNode("chat-protection","chat-enhancement","end-with-dot").setValue(prots.getNode("chat-protection","chat-enhancement","end-with-dot").getBoolean(true));
-			prots.getNode("chat-protection","chat-enhancement","minimum-length").setValue(prots.getNode("chat-protection","chat-enhancement","minimum-lenght").getInt(3));
+			prots.getNode("chat-protection","chat-enhancement","minimum-length").setValue(prots.getNode("chat-protection","chat-enhancement","minimum-length").getInt(3));
 
 			prots.getNode("chat-protection","anti-flood","enable").setValue(prots.getNode("chat-protection","anti-flood","enable").getBoolean(true));
 			prots.getNode("chat-protection","anti-flood","whitelist-flood-characs")
 			.setValue(prots.getNode("chat-protection","anti-flood","whitelist-flood-characs").getList(TypeToken.of(String.class), Arrays.asList("k")));
 
 			prots.getNode("chat-protection","caps-filter","enable").setValue(prots.getNode("chat-protection","caps-filter","enable").getBoolean(true));
-			prots.getNode("chat-protection","caps-filter","minimum-length").setValue(prots.getNode("chat-protection","caps-filter","minimum-lenght").getInt(3));
+			prots.getNode("chat-protection","caps-filter","minimum-length").setValue(prots.getNode("chat-protection","caps-filter","minimum-length").getInt(3));
 
 			prots.getNode("chat-protection","antispam","enable").setValue(prots.getNode("chat-protection","antispam","enable").getBoolean(false));
-			prots.getNode("chat-protection","antispam","time-beteween-messages").setValue(prots.getNode("chat-protection","antispam","time-beteween-messages").getInt(1));
+			prots.getNode("chat-protection","antispam","time-between-messages").setValue(prots.getNode("chat-protection","antispam","time-between-messages").getInt(1));
 			prots.getNode("chat-protection","antispam","count-of-same-message").setValue(prots.getNode("chat-protection","antispam","count-of-same-message").getInt(5));
-			prots.getNode("chat-protection","antispam","time-beteween-same-messages").setValue(prots.getNode("chat-protection","antispam","time-beteween-same-messages").getInt(10));
-			prots.getNode("chat-protection","antispam","cooldown-msg").setValue(prots.getNode("chat-protection","antispam","colldown-msg").getString("&6Slow down your messages!"));
+			prots.getNode("chat-protection","antispam","time-between-same-messages").setValue(prots.getNode("chat-protection","antispam","time-between-same-messages").getInt(10));
+			prots.getNode("chat-protection","antispam","cooldown-msg").setValue(prots.getNode("chat-protection","antispam","cooldown-msg").getString("&6Slow down your messages!"));
 			prots.getNode("chat-protection","antispam","wait-message").setValue(prots.getNode("chat-protection","antispam","wait-message").getString("&cWait to send the same message again!"));
 			prots.getNode("chat-protection","antispam","cmd-action").setValue(prots.getNode("chat-protection","antispam","cmd-action").getString("kick {player} Woah there, too spicy! ;)"));
 
