@@ -27,7 +27,7 @@ import java.util.List;
 @Plugin(
 		id = "ultimatechat",
 		name = "UltimateChat",
-		version = "1.8.2",
+		version = "1.8.3",
 		description="Fork of UltimateChat by FabioZumbi12 with some additional features and tweaks.",
 		url = "http://www.phynixmc.com",
 		authors = {
@@ -99,7 +99,7 @@ public class UltimateChat {
         	UCConfig.getInstance().init();
     		// Initialize lang
             UCLang.init();
-            // Initialize perms TODO ???? initialize perms? wtf?
+            // Initialize perms
             this.perms = new UCPerms(this.game);
 
             // Register commands

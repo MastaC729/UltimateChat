@@ -48,11 +48,29 @@ class UCMessages {
 	 * @return Object[]
 	 */
 	protected static Object[] sendFancyMessage(String[] format, String msg, UCChannel channel, CommandSource sender, Player tellReceiver){
+
+		// Perms check: if the sender doesn't have the parent node
+		if (!UltimateChat.getPerms().channelPerm(sender, channel)) {
+			// And if they don't have either the sender node or the receive node
+			if (UltimateChat.getPerms().channelPermSend(sender, channel) || UltimateChat.getPerms().channelPermReceive(sender, channel)) {
+				if (!UltimateChat.getPerms().channelPermSend(sender, channel) && !UltimateChat.getPerms().channelPermReceive(sender, channel)) {
+					UCLang.sendMessage(sender, UCLang.get("channel.nopermission").replace("{channel}", channel.getName()));
+					return null;
+				}
+				// Just no send perms
+				if (!UltimateChat.getPerms().channelPermSend(sender, channel)) {
+					UCLang.sendMessage(sender, UCLang.get("channel.nopermission.send").replace("{channel}", channel.getName()));
+					return null;
+				}
+			}
+		}
+
 		//Execute listener:
 		HashMap<String,String> tags = new HashMap<String,String>();
 		for (String str:UCConfig.getInstance().getStringList("general","custom-tags")){
 			tags.put(str, str);
 		}
+		// Fire new SendChannelMessageEvent event
 		SendChannelMessageEvent event = new SendChannelMessageEvent(tags, format, sender, channel, msg, true);
 		Sponge.getEventManager().post(event);
 		if (event.isCancelled()){
@@ -65,7 +83,10 @@ class UCMessages {
 		String evmsg = event.getMessage();
 		
 		//send to event
-		MutableMessageChannel msgCh = MessageChannel.TO_CONSOLE.asMutable();
+		MutableMessageChannel msgCh;
+
+		msgCh = MessageChannel.permission("uchat.channel." + channel.getName() + ".receive").asMutable();
+		msgCh.addMember(Sponge.getServer().getConsole());
 				
 		evmsg = UCChatProtection.filterChatMessage(sender, evmsg, event.getChannel());
 		if (evmsg == null){
@@ -74,26 +95,17 @@ class UCMessages {
 		
 		evmsg = composeColor(sender,evmsg);
 						
-		if (event.getChannel() != null){					
-			
+		if (event.getChannel() != null){
+
 			UCChannel ch = event.getChannel();
-			
+
+			// If the player can't send messages to the channel in the world they're in, tell them that.
 			if (sender instanceof Player && !ch.availableWorlds().isEmpty() && !ch.availableInWorld(((Player)sender).getWorld())){
 				UCLang.sendMessage(sender, UCLang.get("channel.notavailable").replace("{channel}", ch.getName()));
 				return null;
 			}
 
-			// If the sender doesn't have the parent node
-			if (!UltimateChat.getPerms().channelPerm(sender, ch)) {
-				// And if they don't have the sender node
-				if (!UltimateChat.getPerms().channelPermSend(sender, ch)){
-					UCLang.sendMessage(sender, UCLang.get("channel.nopermission.send").replace("{channel}", ch.getName()));
-					return null;
-				}
-				UCLang.sendMessage(sender, UCLang.get("channel.nopermission").replace("{channel}", ch.getName()));
-				return null;
-			}
-			
+			// Economy check
 			if (!UltimateChat.getPerms().hasPerm(sender, "bypass.cost") && UltimateChat.getEco() != null && sender instanceof Player && ch.getCost() > 0){
 				UniqueAccount acc = UltimateChat.getEco().getOrCreateAccount(((Player)sender).getUniqueId()).get();
 				if (acc.getBalance(UltimateChat.getEco().getDefaultCurrency()).doubleValue() < ch.getCost()){
@@ -134,7 +146,7 @@ class UCMessages {
 				toConsole = sendMessage(sender, sender, evmsg, ch, false);
 			} else {
 				for (Player receiver:Sponge.getServer().getOnlinePlayers()){	
-					if (receiver.equals(sender) || !UltimateChat.getPerms().channelPerm(receiver, ch) || (!ch.crossWorlds() && (sender instanceof Player && !receiver.getWorld().equals(((Player)sender).getWorld())))){
+					if (receiver.equals(sender) /*|| !UltimateChat.getPerms().channelPerm(receiver, ch) TODO fix this*/ || (!ch.crossWorlds() && (sender instanceof Player && !receiver.getWorld().equals(((Player)sender).getWorld())))){
 						continue;
 					}
 					if (!ch.availableWorlds().isEmpty() && !ch.availableInWorld(receiver.getWorld())){
@@ -159,7 +171,7 @@ class UCMessages {
 			}	
 									
 			//chat spy
-			for (Player receiver:Sponge.getServer().getOnlinePlayers()){			
+			for (Player receiver:Sponge.getServer().getOnlinePlayers()){
 				if (!receiver.equals(sender) && !receivers.contains(receiver) && !receivers.contains(sender) && UltimateChat.isSpy.contains(receiver.getName())){
 					String spyformat = UCConfig.getInstance().getString("general","spy-format");
 					spyformat = spyformat.replace("{output}", UCUtil.stripColor(buildMessage(sendMessage(sender, receiver, evmsg, ch, true)).toPlain()));					
@@ -195,9 +207,10 @@ class UCMessages {
 						spyformat = UCLang.get("chat.ignored")+spyformat;
 					}
 					spyformat = spyformat.replace("{output}", UCUtil.stripColor(buildMessage(sendMessage(sender, tellReceiver, evmsg, fakech, true)).toPlain()));					
-					receiver.sendMessage(UCUtil.toText(spyformat));					
+					receiver.sendMessage(UCUtil.toText(spyformat));
 				}
 			}
+			// TODO this may have broken
 			Text to = buildMessage(sendMessage(sender, tellReceiver, evmsg, fakech, false));
 			if (isIgnoringPlayers(tellReceiver.getName(), sender.getName())){
 				to = Text.of(UCUtil.toText(UCLang.get("chat.ignored")),to);
@@ -205,7 +218,7 @@ class UCMessages {
 			Sponge.getServer().getConsole().sendMessage(to);
 			return null;
 		}
-		
+
 		return new Object[]{msgCh,toConsole[0].build(),toConsole[1].build(),toConsole[2].build()};
 	}
 	
@@ -234,7 +247,8 @@ class UCMessages {
 		}	
 		return evmsg;
 	}
-	
+
+	// p is ignoring/not ignoring victim
 	static boolean isIgnoringPlayers(String p, String victim){
 		List<String> list = new ArrayList<String>();
 		if (UltimateChat.ignoringPlayer.containsKey(p)){
@@ -398,9 +412,10 @@ class UCMessages {
 				sender.sendMessage(Text.of(formatter, message));
 			}			
 		}
-		
+
+		//TODO I broke this, and it seems to be be written correctly :(
 		if (!isSpy && !isIgnoringPlayers(receiver.getName(), sender.getName())){
-			receiver.sendMessage(Text.of(formatter,playername,message));			
+			//receiver.sendMessage(Text.of(formatter,playername,message));
 		}		
 		return new Builder[]{formatter,playername,message};
 	}

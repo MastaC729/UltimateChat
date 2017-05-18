@@ -31,7 +31,7 @@ public class uChatAPI {
 		return false;
 	}
 
-	// TODO Add the two new settings to this API method: overrideTagBuilder and customPrefix
+	// TODO Add the two new settings to this API method once they are fully implemented: overrideTagBuilder and customPrefix
 
 	/**Register a new channel and save on channels folder.
 	 * @param chName {@code String} - Channel name.
@@ -68,8 +68,6 @@ public class uChatAPI {
 		return true;
 	}
 
-	// TODO Add config option to allow permissions to override leaveable - I'm only doing this for support for other servers, since we want this to not be a feature
-
 	/**Register a new channel and save on channels folder. This is used in cases where the other setting will be specified later.
 	 * @param chName {@code String} - Channel name.
 	 * @param chAlias {@code String} - Channel alias.
@@ -83,7 +81,6 @@ public class uChatAPI {
 			return false;
 		}
 		// Channel aliases must be unique
-		// TODO add some language outputs here to tell the player they dun goof'd when they ran this command
 		if (config.getChAliases().contains(chAlias)) {
 			return false;
 		}

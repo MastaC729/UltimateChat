@@ -169,7 +169,7 @@ public class UCLang {
 		if (DelayedMessage.containsKey(p) && DelayedMessage.get(p).equals(key)){
 			return;
 		}
-		
+
 		if (Lang.get(key) == null){
 			p.sendMessage(UCUtil.toText(get("_UChat.prefix")+ " " + key));
 		} else if (get(key).equalsIgnoreCase("")){
@@ -185,7 +185,6 @@ public class UCLang {
 					DelayedMessage.remove(p);
 				}
 				} 
-			},1, TimeUnit.SECONDS);	
+			},1, TimeUnit.SECONDS);
 	}
-		
 }

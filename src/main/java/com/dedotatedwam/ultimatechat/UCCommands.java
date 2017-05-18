@@ -9,6 +9,7 @@ import org.spongepowered.api.command.args.GenericArguments;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
+import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.text.channel.MutableMessageChannel;
 
 import java.io.IOException;
@@ -155,16 +156,17 @@ public class UCCommands {
 								return CommandResult.success();
 							}
 				    		UCChannel ch = args.<UCChannel>getOne("channel").get();							
-							if (!UltimateChat.getPerms().channelPermReceive(p, ch)){
+							if (UltimateChat.getPerms().channelPermReceive(p, ch) || UltimateChat.getPerms().channelPermSend(p, ch) || UltimateChat.getPerms().channelPerm(p, ch)) {
+								if (UltimateChat.pChannels.containsKey(p.getName()) && UltimateChat.pChannels.get(p.getName()).equals(ch.getAlias())) {
+									UCLang.sendMessage(p, UCLang.get("channel.alreadyon").replace("{channel}", ch.getName()));
+									return CommandResult.success();
+								}
+
+								UltimateChat.pChannels.put(p.getName(), ch.getAlias());
+								UCLang.sendMessage(p, UCLang.get("channel.entered").replace("{channel}", ch.getName()));
+							} else {
 								throw new CommandException(UCUtil.toText(UCLang.get("channel.nopermission.receive").replace("{channel}", ch.getName())));
 							}
-							if (UltimateChat.pChannels.containsKey(p.getName()) && UltimateChat.pChannels.get(p.getName()).equals(ch.getAlias())){
-								UCLang.sendMessage(p, UCLang.get("channel.alreadyon").replace("{channel}", ch.getName()));
-								return CommandResult.success();	
-							}
-
-							UltimateChat.pChannels.put(p.getName(), ch.getAlias());
-							UCLang.sendMessage(p, UCLang.get("channel.entered").replace("{channel}", ch.getName()));
 				    	} 
 				    	return CommandResult.success();	
 				    }})
@@ -218,7 +220,6 @@ public class UCCommands {
 			UltimateChat.getLogger().debug("Channel name from UCChannel class: " + ch.getName());
 			Sponge.getCommandManager().register(UltimateChat.plugin, CommandSpec.builder()
 					.arguments(GenericArguments.optional(GenericArguments.remainingJoinedStrings(Text.of("message"))))
-					.permission("uchat.channel."+ch.getName())
 				    .description(Text.of("Command to use channel "+ch.getName()+"."))
 				    .executor((src, args) -> { {
 				    	if (src instanceof Player){
@@ -245,11 +246,13 @@ public class UCCommands {
 				    			
 				    			Object[] chArgs = UCMessages.sendFancyMessage(new String[0], args.<String>getOne("message").get(), ch, src, null);  
 				    			if (chArgs != null){
-				    				MutableMessageChannel msgCh = (MutableMessageChannel) chArgs[0];
+				    				// MutableMessageChannel msgCh = (MutableMessageChannel) chArgs[0]; TODO Remove this if the new method works
+									MutableMessageChannel msgCh = MessageChannel.permission("channel." + ch.getName() + ".receive").asMutable();
+									msgCh.addMember(src);
 				    				msgCh.send(src, Text.join((Text)chArgs[1],(Text)chArgs[2],(Text)chArgs[3]));
 				    			}
 				    		} else {
-				    			if (!ch.canLock()){		//TODO Fix this message sent to the console; it makes no damn sense
+				    			if (!ch.canLock()){
 				    				UCLang.sendMessage(src, "help.channels.send");
 									return CommandResult.success();
 								}

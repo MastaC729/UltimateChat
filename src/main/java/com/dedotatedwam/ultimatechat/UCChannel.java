@@ -214,6 +214,7 @@ public class UCChannel implements MutableMessageChannel {
 	}
 
 	//TODO In the future all message transformation needs to happen here
+	//TODO Manage members of each channel here, then have the config class store every UCChanel instance
 	/*public Optional<Text> transformMessage(Object sender, MessageReceiver recipient, Text original) {
 
 

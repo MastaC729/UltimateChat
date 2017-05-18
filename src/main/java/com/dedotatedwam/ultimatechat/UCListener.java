@@ -8,8 +8,10 @@ import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.message.MessageChannelEvent;
+import org.spongepowered.api.event.message.MessageEvent;
 import org.spongepowered.api.event.network.ClientConnectionEvent;
 import org.spongepowered.api.text.Text;
+import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.api.text.channel.MutableMessageChannel;
 import org.spongepowered.api.text.serializer.TextSerializers;
 
@@ -28,7 +30,7 @@ public class UCListener {
 		}		
 		Player tellreceiver = tellreceiver2.get();
 		UltimateChat.respondTell.put(tellreceiver.getName(),p.getName());
-		UCMessages.sendFancyMessage(new String[0], msg, null, p, tellreceiver);			
+		UCMessages.sendFancyMessage(new String[0], msg, null, p, tellreceiver);
 	}
 	
 	@Listener
@@ -45,12 +47,12 @@ public class UCListener {
 				ch = UCConfig.getInstance().getChannel(UltimateChat.tempChannels.get(p.getName()));
 				UltimateChat.tempChannels.remove(p.getName());
 			}
-			
+
 			if (UltimateChat.mutes.contains(p.getName()) || ch.isMuted(p.getName())){
 				UCLang.sendMessage(p, "channel.muted");
 				e.setMessageCancelled(true);
 				return;
-			}			
+			}
 
 			// Command execution when channelAlias.enable is enabled in the channel's config
 			if (ch.isCmdAlias()){
@@ -69,18 +71,29 @@ public class UCListener {
 						TextSerializers.FORMATTING_CODE.serialize(e.getFormatter().getHeader().format()),
 						TextSerializers.FORMATTING_CODE.serialize(e.getFormatter().getBody().format()),
 						TextSerializers.FORMATTING_CODE.serialize(e.getFormatter().getFooter().format())
-						}, TextSerializers.FORMATTING_CODE.serialize(e.getRawMessage()), ch, p, null);	
+						}, TextSerializers.FORMATTING_CODE.serialize(e.getRawMessage()), ch, p, null);
 				if (args == null){					
 					e.setMessageCancelled(true);
 				} else {
-					MutableMessageChannel msgCh = (MutableMessageChannel) args[0];		//TODO this seems to be where receive perms would be checked
+					Optional<MessageChannel> optionalChannel = e.getChannel();
+					if (!optionalChannel.isPresent()) {
+						return;
+					}
+					MutableMessageChannel msgCh = optionalChannel.get().asMutable();
+					MessageEvent.MessageFormatter formatter = e.getFormatter();
+
+					msgCh = MessageChannel.permission("uchat.channel." + ch.getName() + ".receive").asMutable();
 					msgCh.addMember(Sponge.getServer().getConsole());
-					
+
 					e.setChannel(msgCh);
-					e.setMessage((Text)args[1], (Text)args[2], (Text)args[3]);
-				}										
+
+					//Text msg = Text.of(args[1], args[2], args[3]);
+					formatter.setHeader(Text.of(args[1]));
+					formatter.setBody(Text.of(args[2]));
+					formatter.setFooter(Text.of(args[3]));
+				}
 			}
-		}				
+		}
 	}
 	
 	@Listener
